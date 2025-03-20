@@ -92,7 +92,10 @@ const BidHistory = ({ productId }: BidHistoryProps) => {
                 <p className="text-sm text-gray-500 mb-4">
                   Please log in to view your bid history for this product.
                 </p>
-                <Button onClick={() => setShowAuthForm(true)}>
+                <Button 
+                  onClick={() => setShowAuthForm(true)}
+                  className="bg-blue-500 hover:bg-blue-600 text-white"
+                >
                   Login to View Bids
                 </Button>
               </div>
@@ -111,6 +114,7 @@ const BidHistory = ({ productId }: BidHistoryProps) => {
                   <Button 
                     onClick={verifyAdmin}
                     disabled={isVerifying}
+                    className="bg-blue-500 hover:bg-blue-600 text-white"
                   >
                     {isVerifying ? "Verifying..." : "Login"}
                   </Button>

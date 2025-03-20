@@ -105,7 +105,11 @@ const AccountForm = ({ onSuccess }: AccountFormProps) => {
               />
             </div>
             
-            <Button type="submit" className="w-full" disabled={isLoggingIn}>
+            <Button 
+              type="submit" 
+              className="w-full bg-blue-500 hover:bg-blue-600 text-white" 
+              disabled={isLoggingIn}
+            >
               {isLoggingIn ? (
                 <span className="flex items-center">
                   Logging in
@@ -165,7 +169,11 @@ const AccountForm = ({ onSuccess }: AccountFormProps) => {
               </p>
             </div>
             
-            <Button type="submit" className="w-full" disabled={isRegistering}>
+            <Button 
+              type="submit" 
+              className="w-full bg-blue-500 hover:bg-blue-600 text-white" 
+              disabled={isRegistering}
+            >
               {isRegistering ? (
                 <span className="flex items-center">
                   Creating account

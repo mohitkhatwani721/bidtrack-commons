@@ -16,7 +16,7 @@ let users: User[] = [
     id: "1",
     email: "mohit.khatwani@gmail.com",
     name: "Mohit Khatwani",
-    password: "password123",
+    password: "Khatu@1234@12", // Updated password to match what the user expects
     createdAt: new Date(2023, 0, 1)
   },
   {
