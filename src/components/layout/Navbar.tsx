@@ -2,10 +2,22 @@
 import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
-import { GavelIcon, HomeIcon, PackageIcon, UserIcon, TimerIcon } from "lucide-react";
+import { GavelIcon, HomeIcon, PackageIcon, UserIcon, TimerIcon, LogOutIcon } from "lucide-react";
+import { getCurrentUser, logout } from "@/lib/auth";
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger 
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 const Navbar = () => {
   const [scrolled, setScrolled] = useState(false);
+  const currentUser = getCurrentUser();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -20,6 +32,22 @@ const Navbar = () => {
       window.removeEventListener("scroll", handleScroll);
     };
   }, [scrolled]);
+
+  const handleLogout = () => {
+    logout();
+    window.location.href = "/"; // Redirect to homepage after logout
+  };
+
+  // Get user initials for avatar
+  const getUserInitials = () => {
+    if (!currentUser?.name) return "U";
+    return currentUser.name
+      .split(" ")
+      .map(part => part[0])
+      .join("")
+      .toUpperCase()
+      .substring(0, 2);
+  };
 
   return (
     <header
@@ -44,6 +72,36 @@ const Navbar = () => {
           <NavLink to="/products" icon={<PackageIcon className="h-4 w-4" />} label="Products" />
           <NavLink to="/my-bids" icon={<UserIcon className="h-4 w-4" />} label="My Bids" />
           <NavLink to="/admin" icon={<TimerIcon className="h-4 w-4" />} label="Admin" />
+          
+          {currentUser ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                  <Avatar className="h-8 w-8">
+                    <AvatarFallback className="bg-blue-500 text-white">
+                      {getUserInitials()}
+                    </AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem>
+                  <UserIcon className="mr-2 h-4 w-4" />
+                  <span>{currentUser.name}</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                  <span className="text-xs text-gray-500">{currentUser.email}</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleLogout} className="text-red-500">
+                  <LogOutIcon className="mr-2 h-4 w-4" />
+                  <span>Log out</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : null}
         </nav>
         
         <div className="flex md:hidden">
