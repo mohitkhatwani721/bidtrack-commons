@@ -7,9 +7,21 @@ interface BidListProps {
   bids: Bid[];
   isAdmin: boolean;
   onLogout: () => void;
+  isLoading?: boolean;
 }
 
-const BidList = ({ bids, isAdmin, onLogout }: BidListProps) => {
+const BidList = ({ bids, isAdmin, onLogout, isLoading = false }: BidListProps) => {
+  if (isLoading) {
+    return (
+      <div className="text-center py-8">
+        <div className="flex justify-center">
+          <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-500 border-t-transparent"></div>
+        </div>
+        <p className="text-gray-500 mt-2">Loading bids...</p>
+      </div>
+    );
+  }
+
   if (bids.length === 0) {
     return (
       <div className="text-center py-8">
