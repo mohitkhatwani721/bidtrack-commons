@@ -1,4 +1,3 @@
-
 import { Product, AuctionSettings, Bid } from "./types";
 
 export const products: Product[] = [
