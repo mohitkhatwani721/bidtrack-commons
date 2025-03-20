@@ -17,7 +17,8 @@ const Admin = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [winningBids, setWinningBids] = useState<Bid[]>([]);
-  const [showAllBids, setShowAllBids] = useState(false);
+  const [showAllBids, setShowAllBids] = useState(true); // Default to showing all bids
+  const [filter, setFilter] = useState("");
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -72,6 +73,11 @@ const Admin = () => {
     document.body.appendChild(link);
     link.click();
   };
+
+  // Filter bids by email if filter is provided
+  const filteredBids = filter
+    ? winningBids.filter(bid => bid.userEmail.toLowerCase().includes(filter.toLowerCase()))
+    : winningBids;
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -172,18 +178,30 @@ const Admin = () => {
                     </Button>
                   </div>
                   
-                  <div className="mb-4 flex justify-between items-center">
-                    <span className="text-sm text-gray-500">
-                      {bids.length} total bids, {winningBids.length} winning bids
-                    </span>
+                  <div className="mb-4 space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-500">
+                        {bids.length} total bids, showing {filteredBids.length} bids
+                      </span>
+                      
+                      <Button 
+                        variant="link" 
+                        onClick={() => setShowAllBids(!showAllBids)}
+                        className="text-sm"
+                      >
+                        {showAllBids ? "Show Only Winning Bids" : "Show All Bids"}
+                      </Button>
+                    </div>
                     
-                    <Button 
-                      variant="link" 
-                      onClick={() => setShowAllBids(!showAllBids)}
-                      className="text-sm"
-                    >
-                      {showAllBids ? "Show Only Winning Bids" : "Show All Bids"}
-                    </Button>
+                    <div>
+                      <Input
+                        type="text"
+                        placeholder="Filter by email (e.g., mohit.khatwani@gmail.com)"
+                        value={filter}
+                        onChange={(e) => setFilter(e.target.value)}
+                        className="w-full"
+                      />
+                    </div>
                   </div>
                   
                   <div className="overflow-x-auto">
@@ -194,12 +212,13 @@ const Admin = () => {
                           <TableHead>Zone</TableHead>
                           <TableHead>Model Code</TableHead>
                           <TableHead>Starting Price</TableHead>
-                          <TableHead>Winning Bid</TableHead>
+                          <TableHead>Bid Amount</TableHead>
                           <TableHead>Bidder</TableHead>
+                          <TableHead>Time</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {(showAllBids ? bids : winningBids).map((bid, index) => {
+                        {filteredBids.map((bid, index) => {
                           const product = getProductById(bid.productId);
                           if (!product) return null;
                           
@@ -210,15 +229,16 @@ const Admin = () => {
                               <TableCell>{product.modelCode}</TableCell>
                               <TableCell>AED {product.pricePerUnit.toLocaleString()}</TableCell>
                               <TableCell>AED {bid.amount.toLocaleString()}</TableCell>
-                              <TableCell>{bid.userEmail}</TableCell>
+                              <TableCell className="font-medium">{bid.userEmail}</TableCell>
+                              <TableCell>{bid.timestamp.toLocaleString()}</TableCell>
                             </TableRow>
                           );
                         })}
                         
-                        {(showAllBids ? bids : winningBids).length === 0 && (
+                        {filteredBids.length === 0 && (
                           <TableRow>
-                            <TableCell colSpan={6} className="text-center py-8 text-gray-500">
-                              No bids have been placed yet.
+                            <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+                              {filter ? `No bids found for "${filter}"` : "No bids have been placed yet."}
                             </TableCell>
                           </TableRow>
                         )}
