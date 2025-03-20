@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Bid } from "@/lib/types";
@@ -158,7 +159,7 @@ const BidHistory = ({ productId }: BidHistoryProps) => {
             : `Your ${productBids.length} ${productBids.length === 1 ? 'bid' : 'bids'} for this product`}
         </p>
         
-        {isAdmin ? (
+        {isAdmin && (
           <Button 
             variant="outline" 
             size="sm" 
@@ -197,7 +198,7 @@ const BidHistory = ({ productId }: BidHistoryProps) => {
               <p className="text-xs text-gray-500">
                 {formatDistanceToNow(bid.timestamp, { addSuffix: true })}
               </p>
-              {index === 0 && productBids === bids.filter(b => b.productId === productId) && (
+              {index === 0 && productBids.length > 0 && (
                 <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 mt-1">
                   Highest bid
                 </span>
