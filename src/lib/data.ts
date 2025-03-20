@@ -143,6 +143,13 @@ export const bids: Bid[] = [
     userEmail: "jane.smith@example.com",
     amount: 1650,
     timestamp: new Date(new Date().getTime() - 4 * 60 * 60 * 1000) // 4 hours ago
+  },
+  {
+    id: "bid6",
+    productId: "5",
+    userEmail: "mac@gmail.com",
+    amount: 95000,
+    timestamp: new Date(new Date().getTime() - 2 * 60 * 60 * 1000) // 2 hours ago
   }
 ];
 
