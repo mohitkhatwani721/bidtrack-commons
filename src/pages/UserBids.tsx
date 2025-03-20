@@ -21,6 +21,7 @@ const UserBids = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
   const [showAuthForm, setShowAuthForm] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -29,6 +30,7 @@ const UserBids = () => {
     const currentUser = getCurrentUser();
     if (currentUser) {
       setEmail(currentUser.email);
+      setIsLoggedIn(true);
     }
   }, []);
 
@@ -62,6 +64,7 @@ const UserBids = () => {
     const currentUser = getCurrentUser();
     if (currentUser) {
       setEmail(currentUser.email);
+      setIsLoggedIn(true);
       toast.success("You can now view your bids");
     }
   };
@@ -156,17 +159,19 @@ const UserBids = () => {
                     </Button>
                   </div>
                   
-                  <div className="text-center mt-4">
-                    <Button 
-                      variant="outline" 
-                      type="button"
-                      onClick={() => setShowAuthForm(true)}
-                      className="text-xs"
-                    >
-                      <LockKeyhole className="h-3 w-3 mr-1" />
-                      Create Account / Login
-                    </Button>
-                  </div>
+                  {!isLoggedIn && (
+                    <div className="text-center mt-4">
+                      <Button 
+                        variant="outline" 
+                        type="button"
+                        onClick={() => setShowAuthForm(true)}
+                        className="text-xs"
+                      >
+                        <LockKeyhole className="h-3 w-3 mr-1" />
+                        Create Account / Login
+                      </Button>
+                    </div>
+                  )}
                 </form>
               </motion.div>
             )}

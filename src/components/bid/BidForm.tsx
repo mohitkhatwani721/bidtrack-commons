@@ -1,10 +1,13 @@
 
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Lock } from "lucide-react";
 import { useBidForm } from "@/hooks/useBidForm";
+import { getCurrentUser } from "@/lib/auth";
+import AccountForm from "@/components/auth/AccountForm";
 
 interface BidFormProps {
   productId: string;
@@ -12,6 +15,9 @@ interface BidFormProps {
 }
 
 const BidForm = ({ productId, startingPrice }: BidFormProps) => {
+  const [showAuthForm, setShowAuthForm] = useState(false);
+  const currentUser = getCurrentUser();
+  
   const {
     email,
     setEmail,
@@ -20,7 +26,52 @@ const BidForm = ({ productId, startingPrice }: BidFormProps) => {
     isSubmitting,
     minBidAmount,
     handleSubmit
-  } = useBidForm({ productId, startingPrice });
+  } = useBidForm({ 
+    productId, 
+    startingPrice, 
+    initialEmail: currentUser?.email || "" 
+  });
+  
+  const handleAuthSuccess = () => {
+    setShowAuthForm(false);
+    const user = getCurrentUser();
+    if (user) {
+      setEmail(user.email);
+    }
+  };
+  
+  const handleBidClick = (e: React.FormEvent) => {
+    if (!currentUser) {
+      e.preventDefault();
+      setShowAuthForm(true);
+      return;
+    }
+    
+    handleSubmit(e);
+  };
+  
+  if (showAuthForm) {
+    return (
+      <motion.div
+        className="bg-white rounded-lg border p-6"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+      >
+        <h3 className="text-lg font-medium mb-4">Login or Create Account to Place Bid</h3>
+        <AccountForm onSuccess={handleAuthSuccess} />
+        <div className="mt-4 text-center">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowAuthForm(false)}
+          >
+            Cancel
+          </Button>
+        </div>
+      </motion.div>
+    );
+  }
   
   return (
     <motion.div
@@ -31,7 +82,7 @@ const BidForm = ({ productId, startingPrice }: BidFormProps) => {
     >
       <h3 className="text-lg font-medium mb-4">Place Your Bid</h3>
       
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleBidClick} className="space-y-4">
         <div>
           <Label htmlFor="email">Email</Label>
           <Input
@@ -41,7 +92,14 @@ const BidForm = ({ productId, startingPrice }: BidFormProps) => {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
+            readOnly={!!currentUser}
+            className={currentUser ? "bg-gray-100" : ""}
           />
+          {currentUser && (
+            <p className="text-xs text-gray-500 mt-1">
+              Logged in as {currentUser.name}
+            </p>
+          )}
         </div>
         
         <div>
@@ -74,6 +132,7 @@ const BidForm = ({ productId, startingPrice }: BidFormProps) => {
             </span>
           ) : (
             <span className="flex items-center justify-center">
+              {!currentUser && <Lock className="mr-2 h-4 w-4" />}
               Place Bid
               <ArrowRight className="ml-2 h-5 w-5" />
             </span>

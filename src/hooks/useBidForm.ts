@@ -6,10 +6,11 @@ import { placeBid, getHighestBidForProduct, hasUserAlreadyBid } from "@/lib/data
 interface UseBidFormProps {
   productId: string;
   startingPrice: number;
+  initialEmail?: string;
 }
 
-export function useBidForm({ productId, startingPrice }: UseBidFormProps) {
-  const [email, setEmail] = useState("");
+export function useBidForm({ productId, startingPrice, initialEmail = "" }: UseBidFormProps) {
+  const [email, setEmail] = useState(initialEmail);
   const [amount, setAmount] = useState(startingPrice.toString());
   const [isSubmitting, setIsSubmitting] = useState(false);
   
