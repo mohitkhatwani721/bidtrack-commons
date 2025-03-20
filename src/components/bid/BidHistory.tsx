@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Bid } from "@/lib/types";
@@ -7,6 +6,8 @@ import { formatDistanceToNow } from "date-fns";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Lock } from "lucide-react";
+import { getCurrentUser } from "@/lib/auth";
+import AccountForm from "@/components/auth/AccountForm";
 
 interface BidHistoryProps {
   productId: string;
@@ -16,9 +17,11 @@ const BidHistory = ({ productId }: BidHistoryProps) => {
   const [productBids, setProductBids] = useState<Bid[]>([]);
   const [isAdmin, setIsAdmin] = useState(false);
   const [adminPassword, setAdminPassword] = useState("");
-  const [userEmail, setUserEmail] = useState("");
   const [isVerifying, setIsVerifying] = useState(false);
   const [error, setError] = useState("");
+  const [showAuthForm, setShowAuthForm] = useState(false);
+  
+  const currentUser = getCurrentUser();
   
   // Update bids when they change or when user/admin status changes
   useEffect(() => {
@@ -30,12 +33,12 @@ const BidHistory = ({ productId }: BidHistoryProps) => {
           return bid.productId === productId;
         }
         // For user, only show their own bids for this product
-        return bid.productId === productId && (userEmail ? bid.userEmail === userEmail : false);
+        return bid.productId === productId && (currentUser ? bid.userEmail === currentUser.email : false);
       })
       .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
     
     setProductBids(filteredBids);
-  }, [productId, bids, isAdmin, userEmail]);
+  }, [productId, bids, isAdmin, currentUser]);
   
   // Admin verification
   const verifyAdmin = () => {
@@ -55,67 +58,68 @@ const BidHistory = ({ productId }: BidHistoryProps) => {
     }, 1000);
   };
   
-  // User email verification
-  const verifyUser = () => {
-    // Simple email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(userEmail)) {
-      setError("Please enter a valid email");
-      return;
-    }
-    
-    setError("");
-    // This triggers the useEffect to update the bids shown
+  const handleAuthSuccess = () => {
+    setShowAuthForm(false);
   };
   
-  if (!isAdmin && !userEmail) {
+  if (!currentUser && !isAdmin) {
     return (
       <div className="space-y-4">
-        <div className="bg-white rounded-lg border p-6">
-          <h3 className="text-lg font-medium mb-4 flex items-center">
-            <Lock className="h-4 w-4 mr-2" />
-            Bid History Access
-          </h3>
-          
-          <div className="space-y-4">
-            <div>
-              <p className="text-sm text-gray-500 mb-2">
-                Enter your email to see your bids for this product:
-              </p>
-              <div className="flex gap-2">
-                <Input
-                  type="email"
-                  placeholder="Your email address"
-                  value={userEmail}
-                  onChange={(e) => setUserEmail(e.target.value)}
-                />
-                <Button onClick={verifyUser}>View</Button>
-              </div>
+        {showAuthForm ? (
+          <div className="bg-white rounded-lg border p-6">
+            <h3 className="text-lg font-medium mb-4">Login to View Bid History</h3>
+            <AccountForm onSuccess={handleAuthSuccess} />
+            <div className="mt-4 text-center">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowAuthForm(false)}
+              >
+                Cancel
+              </Button>
             </div>
+          </div>
+        ) : (
+          <div className="bg-white rounded-lg border p-6">
+            <h3 className="text-lg font-medium mb-4 flex items-center">
+              <Lock className="h-4 w-4 mr-2" />
+              Bid History Access
+            </h3>
             
-            <div className="border-t pt-4">
-              <p className="text-sm text-gray-500 mb-2">
-                Admin access (to view all bids):
-              </p>
-              <div className="flex gap-2">
-                <Input
-                  type="password"
-                  placeholder="Admin password"
-                  value={adminPassword}
-                  onChange={(e) => setAdminPassword(e.target.value)}
-                />
-                <Button 
-                  onClick={verifyAdmin}
-                  disabled={isVerifying}
-                >
-                  {isVerifying ? "Verifying..." : "Login"}
+            <div className="space-y-4">
+              <div>
+                <p className="text-sm text-gray-500 mb-4">
+                  Please log in to view your bid history for this product.
+                </p>
+                <Button onClick={() => setShowAuthForm(true)}>
+                  Login to View Bids
                 </Button>
               </div>
+              
+              <div className="border-t pt-4">
+                <p className="text-sm text-gray-500 mb-2">
+                  Admin access (to view all bids):
+                </p>
+                <div className="flex gap-2">
+                  <Input
+                    type="password"
+                    placeholder="Admin password"
+                    value={adminPassword}
+                    onChange={(e) => setAdminPassword(e.target.value)}
+                  />
+                  <Button 
+                    onClick={verifyAdmin}
+                    disabled={isVerifying}
+                  >
+                    {isVerifying ? "Verifying..." : "Login"}
+                  </Button>
+                </div>
+              </div>
+              
+              {error && <p className="text-red-500 text-sm">{error}</p>}
             </div>
-            
-            {error && <p className="text-red-500 text-sm">{error}</p>}
           </div>
-        </div>
+        )}
       </div>
     );
   }
@@ -141,16 +145,6 @@ const BidHistory = ({ productId }: BidHistoryProps) => {
             Logout from Admin
           </Button>
         )}
-        {userEmail && !isAdmin && (
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => setUserEmail("")}
-            className="mt-4"
-          >
-            Change Email
-          </Button>
-        )}
       </div>
     );
   }
@@ -174,14 +168,6 @@ const BidHistory = ({ productId }: BidHistoryProps) => {
             }}
           >
             Logout
-          </Button>
-        ) : (
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => setUserEmail("")}
-          >
-            Change Email
           </Button>
         )}
       </div>

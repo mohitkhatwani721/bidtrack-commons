@@ -13,38 +13,32 @@ import { ArrowRight, PackageOpen, LockKeyhole } from "lucide-react";
 import AuctionTimer from "@/components/ui/AuctionTimer";
 import { getRelevantPlaceholder } from "@/utils/imageUtils";
 import AccountForm from "@/components/auth/AccountForm";
-import { getCurrentUser, isValidUserEmail } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/auth";
 
 const UserBids = () => {
-  const [email, setEmail] = useState("");
   const [userBids, setUserBids] = useState<Bid[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
   const [showAuthForm, setShowAuthForm] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [currentUserEmail, setCurrentUserEmail] = useState("");
 
   useEffect(() => {
     window.scrollTo(0, 0);
     
     // Check if user is already logged in
-    const currentUser = getCurrentUser();
-    if (currentUser) {
-      setEmail(currentUser.email);
+    const user = getCurrentUser();
+    if (user) {
+      setCurrentUserEmail(user.email);
       setIsLoggedIn(true);
+      
+      // Automatically load user bids when logged in
+      fetchUserBids(user.email);
     }
   }, []);
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
+  const fetchUserBids = (email: string) => {
     setIsLoading(true);
-    
-    // Check if the email belongs to a registered user
-    if (!isValidUserEmail(email)) {
-      toast.error("This email is not registered. Please create an account first.");
-      setShowAuthForm(true);
-      setIsLoading(false);
-      return;
-    }
     
     // Simulate loading
     setTimeout(() => {
@@ -61,11 +55,12 @@ const UserBids = () => {
   
   const handleAuthSuccess = () => {
     setShowAuthForm(false);
-    const currentUser = getCurrentUser();
-    if (currentUser) {
-      setEmail(currentUser.email);
+    const user = getCurrentUser();
+    if (user) {
+      setCurrentUserEmail(user.email);
       setIsLoggedIn(true);
-      toast.success("You can now view your bids");
+      toast.success("You're now logged in");
+      fetchUserBids(user.email);
     }
   };
 
@@ -91,7 +86,7 @@ const UserBids = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.1 }}
               >
-                View and track all your active bids. Enter your registered email address to see all the products you've bid on.
+                View and track all your active bids. Login to see all the products you've bid on.
               </motion.p>
             </div>
             
@@ -104,7 +99,7 @@ const UserBids = () => {
               <AuctionTimer />
             </motion.div>
             
-            {showAuthForm ? (
+            {!isLoggedIn ? (
               <>
                 <motion.div
                   className="mb-4 text-center"
@@ -113,21 +108,11 @@ const UserBids = () => {
                 >
                   <h2 className="text-xl font-medium mb-2">Create an Account or Login</h2>
                   <p className="text-gray-600 mb-4">
-                    To view your bids, you need to create an account or login with your existing account.
+                    To view your bids, you need to login with your account or create a new one.
                   </p>
                 </motion.div>
                 
                 <AccountForm onSuccess={handleAuthSuccess} />
-                
-                <div className="mt-4 text-center">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setShowAuthForm(false)}
-                  >
-                    Back to Email Search
-                  </Button>
-                </div>
               </>
             ) : (
               <motion.div 
@@ -136,47 +121,30 @@ const UserBids = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.3 }}
               >
-                <form onSubmit={handleSearch} className="space-y-4">
-                  <h2 className="text-xl font-medium mb-4">Find Your Bids</h2>
-                  <div className="flex gap-3">
-                    <Input
-                      type="email"
-                      placeholder="Enter your email address"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                      className="flex-grow"
-                    />
-                    <Button type="submit" disabled={isLoading}>
-                      {isLoading ? (
+                <div className="space-y-4">
+                  <h2 className="text-xl font-medium mb-4">Your Bids</h2>
+                  <div className="flex items-center justify-between">
+                    <p className="text-gray-600">
+                      Logged in as <span className="font-medium">{currentUserEmail}</span>
+                    </p>
+                    {isLoading ? (
+                      <Button disabled>
                         <span className="flex items-center">
-                          Searching
+                          Loading
                           <span className="ml-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
                         </span>
-                      ) : (
-                        "Search"
-                      )}
-                    </Button>
-                  </div>
-                  
-                  {!isLoggedIn && (
-                    <div className="text-center mt-4">
-                      <Button 
-                        variant="outline" 
-                        type="button"
-                        onClick={() => setShowAuthForm(true)}
-                        className="text-xs"
-                      >
-                        <LockKeyhole className="h-3 w-3 mr-1" />
-                        Create Account / Login
                       </Button>
-                    </div>
-                  )}
-                </form>
+                    ) : (
+                      <Button onClick={() => fetchUserBids(currentUserEmail)}>
+                        Refresh Bids
+                      </Button>
+                    )}
+                  </div>
+                </div>
               </motion.div>
             )}
             
-            {hasSearched && !showAuthForm && (
+            {hasSearched && isLoggedIn && (
               <div className="space-y-6">
                 {userBids.length === 0 ? (
                   <motion.div 
@@ -188,7 +156,7 @@ const UserBids = () => {
                     <PackageOpen className="h-12 w-12 mx-auto text-gray-400 mb-4" />
                     <h2 className="text-xl font-medium mb-2">No Bids Found</h2>
                     <p className="text-gray-600 mb-6">
-                      We couldn't find any bids associated with this email address.
+                      You haven't placed any bids yet.
                     </p>
                     <Button asChild>
                       <Link to="/products">Browse Products</Link>
