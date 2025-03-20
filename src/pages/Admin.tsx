@@ -6,7 +6,7 @@ import Footer from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { products, bids, getWinningBids, isAuctionActive, auctionSettings, isWinningBid, getWinners } from "@/lib/data";
+import { products, bids, getWinningBids, isAuctionActive, auctionSettings, isWinningBid, getWinners, getHighestBidForProduct } from "@/lib/data";
 import { Bid, Product } from "@/lib/types";
 import { toast } from "sonner";
 import AuctionTimer from "@/components/ui/AuctionTimer";
