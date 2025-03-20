@@ -63,7 +63,7 @@ const BidForm = ({ productId, startingPrice }: BidFormProps) => {
         
         <Button 
           type="submit" 
-          className="w-full font-bold text-base py-6" 
+          className="w-full font-bold text-base py-6 bg-blue-500 hover:bg-blue-600 text-white" 
           size="lg"
           disabled={isSubmitting}
         >
