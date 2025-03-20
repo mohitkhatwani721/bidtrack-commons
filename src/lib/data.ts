@@ -108,10 +108,44 @@ export const auctionSettings: AuctionSettings = {
   isActive: true
 };
 
-// Mock bids data - initially empty
-export const bids: Bid[] = [];
+export const bids: Bid[] = [
+  {
+    id: "bid1",
+    productId: "1",
+    userEmail: "mohit.khatwani@gmail.com",
+    amount: 650,
+    timestamp: new Date(new Date().getTime() - 3 * 60 * 60 * 1000) // 3 hours ago
+  },
+  {
+    id: "bid2",
+    productId: "3",
+    userEmail: "mohit.khatwani@gmail.com",
+    amount: 500,
+    timestamp: new Date(new Date().getTime() - 5 * 60 * 60 * 1000) // 5 hours ago
+  },
+  {
+    id: "bid3",
+    productId: "5",
+    userEmail: "mohit.khatwani@gmail.com",
+    amount: 14500,
+    timestamp: new Date(new Date().getTime() - 8 * 60 * 60 * 1000) // 8 hours ago
+  },
+  {
+    id: "bid4",
+    productId: "7",
+    userEmail: "john.doe@example.com",
+    amount: 1450,
+    timestamp: new Date(new Date().getTime() - 7 * 60 * 60 * 1000) // 7 hours ago
+  },
+  {
+    id: "bid5",
+    productId: "9",
+    userEmail: "jane.smith@example.com",
+    amount: 1650,
+    timestamp: new Date(new Date().getTime() - 4 * 60 * 60 * 1000) // 4 hours ago
+  }
+];
 
-// Helper functions
 export const getHighestBidForProduct = (productId: string): Bid | null => {
   const productBids = bids.filter(bid => bid.productId === productId);
   if (productBids.length === 0) return null;
@@ -137,13 +171,10 @@ export const placeBid = (productId: string, userEmail: string, amount: number): 
   const product = products.find(p => p.id === productId);
   if (!product) return null;
   
-  // Check if amount is valid (equal to or greater than price per unit)
   if (amount < product.pricePerUnit) return null;
   
-  // Check if user has already bid on this product
   if (hasUserAlreadyBid(productId, userEmail)) return null;
   
-  // Create new bid
   const newBid: Bid = {
     id: Date.now().toString(),
     productId,
@@ -152,20 +183,16 @@ export const placeBid = (productId: string, userEmail: string, amount: number): 
     timestamp: new Date()
   };
   
-  // Add to bids array
   bids.push(newBid);
   
   return newBid;
 };
 
 export const getWinningBids = (): Bid[] => {
-  // Return all bids instead of just the highest bids per product
-  // This ensures all bids, including those by mohit.khatwani@gmail.com, are visible
   return [...bids].sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
 };
 
 export const isAuctionActive = (): boolean => {
-  // Always return true to ensure bidding is enabled for demo purposes
   return true;
 };
 
