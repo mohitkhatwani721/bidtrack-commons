@@ -9,6 +9,8 @@ interface ProductImageGalleryProps {
 }
 
 const ProductImageGallery = ({ product }: ProductImageGalleryProps) => {
+  const fallbackImage = "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?q=80&w=1000&auto=format&fit=crop";
+  
   return (
     <div className="space-y-6">
       <motion.div 
@@ -17,17 +19,15 @@ const ProductImageGallery = ({ product }: ProductImageGalleryProps) => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        {product.imageUrl ? (
-          <img
-            src={product.imageUrl}
-            alt={product.name}
-            className="h-full w-full object-contain p-6"
-          />
-        ) : (
-          <div className="flex h-full items-center justify-center bg-gray-100">
-            <span className="text-gray-400">No image available</span>
-          </div>
-        )}
+        <img
+          src={product.imageUrl || fallbackImage}
+          alt={product.name}
+          className="h-full w-full object-contain p-6"
+          onError={(e) => {
+            const target = e.target as HTMLImageElement;
+            target.src = fallbackImage;
+          }}
+        />
         
         <div className="absolute top-4 left-4">
           <Badge className="glass">{product.zone}</Badge>
@@ -43,17 +43,15 @@ const ProductImageGallery = ({ product }: ProductImageGalleryProps) => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, delay: 0.1 * i }}
           >
-            {product.imageUrl ? (
-              <img 
-                src={product.imageUrl} 
-                alt={`${product.name} view ${i}`}
-                className="h-full w-full object-contain p-2"
-              />
-            ) : (
-              <div className="flex h-full items-center justify-center bg-gray-100">
-                <span className="text-gray-400 text-sm">View {i}</span>
-              </div>
-            )}
+            <img 
+              src={product.imageUrl || fallbackImage}
+              alt={`${product.name} view ${i}`}
+              className="h-full w-full object-contain p-2"
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                target.src = fallbackImage;
+              }}
+            />
           </motion.div>
         ))}
       </div>

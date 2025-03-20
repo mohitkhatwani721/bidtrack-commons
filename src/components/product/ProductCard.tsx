@@ -18,6 +18,7 @@ const ProductCard = ({ product, featured = false }: ProductCardProps) => {
   const [isHovered, setIsHovered] = useState(false);
   const highestBid = getHighestBidForProduct(product.id);
   const totalBids = getTotalBidsForProduct(product.id);
+  const fallbackImage = "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?q=80&w=1000&auto=format&fit=crop";
 
   return (
     <motion.div
@@ -31,21 +32,19 @@ const ProductCard = ({ product, featured = false }: ProductCardProps) => {
     >
       <Link to={`/product/${product.id}`} className="block">
         <div className="relative aspect-square overflow-hidden bg-gray-100">
-          {product.imageUrl ? (
-            <img
-              src={product.imageUrl}
-              alt={product.name}
-              className={cn(
-                "h-full w-full object-cover transition-transform duration-500",
-                isHovered ? "scale-110" : "scale-100"
-              )}
-              loading="lazy"
-            />
-          ) : (
-            <div className="flex h-full items-center justify-center bg-gray-100">
-              <span className="text-gray-400">No image</span>
-            </div>
-          )}
+          <img
+            src={product.imageUrl || fallbackImage}
+            alt={product.name}
+            className={cn(
+              "h-full w-full object-cover transition-transform duration-500",
+              isHovered ? "scale-110" : "scale-100"
+            )}
+            loading="lazy"
+            onError={(e) => {
+              const target = e.target as HTMLImageElement;
+              target.src = fallbackImage;
+            }}
+          />
           
           <div className="absolute top-2 left-2 flex flex-col gap-1">
             <Badge variant="secondary" className="glass">

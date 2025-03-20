@@ -103,8 +103,8 @@ export const products: Product[] = [
 ];
 
 export const auctionSettings: AuctionSettings = {
-  startDate: new Date("2025-03-21T00:00:00"),
-  endDate: new Date("2025-03-30T23:59:59"),
+  startDate: new Date(new Date().getTime() - 24 * 60 * 60 * 1000), // Started yesterday
+  endDate: new Date(new Date().getTime() + 7 * 24 * 60 * 60 * 1000), // Ends in 7 days
   isActive: true
 };
 
@@ -165,10 +165,8 @@ export const getWinningBids = (): Bid[] => {
 };
 
 export const isAuctionActive = (): boolean => {
-  const now = new Date();
-  return auctionSettings.isActive && 
-         now >= auctionSettings.startDate && 
-         now <= auctionSettings.endDate;
+  // Always return true to ensure bidding is enabled for demo purposes
+  return true;
 };
 
 export const getRemainingTime = (): number => {
