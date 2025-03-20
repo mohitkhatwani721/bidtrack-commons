@@ -63,7 +63,8 @@ const BidForm = ({ productId, startingPrice }: BidFormProps) => {
         
         <Button 
           type="submit" 
-          className="w-full" 
+          className="w-full font-bold text-base py-6" 
+          size="lg"
           disabled={isSubmitting}
         >
           {isSubmitting ? (
@@ -72,9 +73,9 @@ const BidForm = ({ productId, startingPrice }: BidFormProps) => {
               <span className="ml-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
             </span>
           ) : (
-            <span className="flex items-center">
+            <span className="flex items-center justify-center">
               Place Bid
-              <ArrowRight className="ml-2 h-4 w-4" />
+              <ArrowRight className="ml-2 h-5 w-5" />
             </span>
           )}
         </Button>
