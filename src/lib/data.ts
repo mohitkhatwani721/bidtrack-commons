@@ -146,6 +146,15 @@ export const bids: Bid[] = [
   }
 ];
 
+export const updateAuctionDates = (startDate: Date, endDate: Date): void => {
+  if (startDate > endDate) {
+    throw new Error("Start date cannot be after end date");
+  }
+  
+  auctionSettings.startDate = startDate;
+  auctionSettings.endDate = endDate;
+};
+
 export const getHighestBidForProduct = (productId: string): Bid | null => {
   const productBids = bids.filter(bid => bid.productId === productId);
   if (productBids.length === 0) return null;

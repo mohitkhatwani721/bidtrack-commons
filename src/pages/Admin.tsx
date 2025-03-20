@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import Navbar from "@/components/layout/Navbar";
@@ -6,12 +5,16 @@ import Footer from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { products, bids, getWinningBids, isAuctionActive, auctionSettings, isWinningBid, getWinners, getHighestBidForProduct } from "@/lib/data";
+import { products, bids, getWinningBids, isAuctionActive, auctionSettings, isWinningBid, getWinners, getHighestBidForProduct, updateAuctionDates } from "@/lib/data";
 import { Bid, Product } from "@/lib/types";
 import { toast } from "sonner";
 import AuctionTimer from "@/components/ui/AuctionTimer";
-import { DownloadIcon, LockIcon, TrophyIcon } from "lucide-react";
+import { DownloadIcon, LockIcon, TrophyIcon, CalendarIcon, Settings2Icon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 
 const Admin = () => {
   const [password, setPassword] = useState("");
@@ -21,6 +24,9 @@ const Admin = () => {
   const [showAllBids, setShowAllBids] = useState(true); // Default to showing all bids
   const [filter, setFilter] = useState("");
   const [winners, setWinners] = useState<Map<string, Bid>>(new Map());
+  const [startDate, setStartDate] = useState<Date>(auctionSettings.startDate);
+  const [endDate, setEndDate] = useState<Date>(auctionSettings.endDate);
+  const [isUpdatingDates, setIsUpdatingDates] = useState(false);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -30,6 +36,8 @@ const Admin = () => {
     if (isAuthenticated) {
       setWinningBids(getWinningBids());
       setWinners(getWinners());
+      setStartDate(auctionSettings.startDate);
+      setEndDate(auctionSettings.endDate);
     }
   }, [isAuthenticated]);
 
@@ -76,6 +84,19 @@ const Admin = () => {
     link.setAttribute("download", "auction_results.csv");
     document.body.appendChild(link);
     link.click();
+  };
+
+  const handleUpdateAuctionDates = () => {
+    setIsUpdatingDates(true);
+    
+    setTimeout(() => {
+      // Update the auction dates
+      updateAuctionDates(startDate, endDate);
+      
+      // Show success message
+      toast.success("Auction dates updated successfully!");
+      setIsUpdatingDates(false);
+    }, 1000);
   };
 
   // Filter bids by email if filter is provided
@@ -164,6 +185,89 @@ const Admin = () => {
                 transition={{ duration: 0.5 }}
                 className="space-y-6"
               >
+                <div className="bg-white rounded-lg border p-6">
+                  <div className="flex items-center space-x-4 mb-6">
+                    <div className="p-3 bg-blue-50 rounded-full">
+                      <Settings2Icon className="h-6 w-6 text-blue-500" />
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-medium">Auction Settings</h2>
+                      <p className="text-gray-600">Update the auction start and end dates.</p>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Start Date</label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "w-full justify-start text-left font-normal",
+                              !startDate && "text-muted-foreground"
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {startDate ? format(startDate, "PPP") : <span>Pick a date</span>}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={startDate}
+                            onSelect={(date) => date && setStartDate(date)}
+                            initialFocus
+                            className="pointer-events-auto"
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">End Date</label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "w-full justify-start text-left font-normal",
+                              !endDate && "text-muted-foreground"
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {endDate ? format(endDate, "PPP") : <span>Pick a date</span>}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={endDate}
+                            onSelect={(date) => date && setEndDate(date)}
+                            initialFocus
+                            className="pointer-events-auto"
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                  </div>
+                  
+                  <Button 
+                    onClick={handleUpdateAuctionDates} 
+                    className="bg-blue-500 hover:bg-blue-600 text-white"
+                    disabled={isUpdatingDates}
+                  >
+                    {isUpdatingDates ? (
+                      <span className="flex items-center">
+                        Updating
+                        <span className="ml-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                      </span>
+                    ) : (
+                      "Update Auction Dates"
+                    )}
+                  </Button>
+                </div>
+                
                 <div className="bg-white rounded-lg border p-6">
                   <div className="flex items-center justify-between mb-6">
                     <div>
