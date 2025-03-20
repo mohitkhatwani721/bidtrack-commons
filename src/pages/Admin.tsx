@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import Navbar from "@/components/layout/Navbar";
@@ -38,7 +39,7 @@ const Admin = () => {
   const [password, setPassword] = useState("");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [winningBids, setWinningBids] = useState<Bid[]>([]);
+  const [allBids, setAllBids] = useState<Bid[]>([]);
   const [showAllBids, setShowAllBids] = useState(true); // Default to showing all bids
   const [filter, setFilter] = useState("");
   const [winners, setWinners] = useState<Map<string, Bid>>(new Map());
@@ -54,7 +55,8 @@ const Admin = () => {
 
   useEffect(() => {
     if (isAuthenticated) {
-      setWinningBids(getWinningBids());
+      // Load all bids sorted by timestamp (newest first) instead of just winning bids
+      setAllBids([...bids].sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime()));
       setWinners(getWinners());
       setStartDate(auctionSettings.startDate);
       setEndDate(auctionSettings.endDate);
@@ -94,13 +96,12 @@ const Admin = () => {
   const handleExportToExcel = () => {
     toast.success("Results exported successfully!");
     
-    // In a real app, implement actual Excel export logic here
-    console.log("Exporting results to Excel...");
+    // Updated Excel export logic to include winner tag
+    console.log("Exporting results to Excel with winner tag...");
     
-    // This would typically generate a CSV or Excel file
     const csvContent = "data:text/csv;charset=utf-8," 
       + "Product ID,Product Name,Model Code,Zone,Price Per Unit,Winning Bid Amount,Bidder Email,Is Winner\n"
-      + winningBids.map(bid => {
+      + allBids.map(bid => {
           const product = getProductById(bid.productId);
           const isWinner = isWinningBid(bid);
           return product 
@@ -154,8 +155,8 @@ const Admin = () => {
 
   // Filter bids by email if filter is provided
   const filteredBids = filter
-    ? winningBids.filter(bid => bid.userEmail.toLowerCase().includes(filter.toLowerCase()))
-    : winningBids;
+    ? allBids.filter(bid => bid.userEmail.toLowerCase().includes(filter.toLowerCase()))
+    : allBids;
 
   // Filter to only show winning bids if showAllBids is false
   const displayBids = showAllBids 
