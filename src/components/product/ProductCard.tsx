@@ -43,7 +43,8 @@ const ProductCard = ({ product, featured = false }: ProductCardProps) => {
     }
   };
   
-  const fallbackImage = getRelevantPlaceholder(product.name);
+  // Use the product's imageUrl first, or the relevant placeholder if no imageUrl exists
+  const imageToDisplay = product.imageUrl || getRelevantPlaceholder(product.name);
 
   return (
     <motion.div
@@ -58,7 +59,7 @@ const ProductCard = ({ product, featured = false }: ProductCardProps) => {
       <Link to={`/product/${product.id}`} className="block">
         <div className="relative aspect-square overflow-hidden bg-gray-100">
           <img
-            src={product.imageUrl || fallbackImage}
+            src={imageToDisplay}
             alt={product.name}
             className={cn(
               "h-full w-full object-cover transition-transform duration-500",
@@ -67,7 +68,7 @@ const ProductCard = ({ product, featured = false }: ProductCardProps) => {
             loading="lazy"
             onError={(e) => {
               const target = e.target as HTMLImageElement;
-              target.src = fallbackImage;
+              target.src = getRelevantPlaceholder(product.name);
             }}
           />
           

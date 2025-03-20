@@ -9,9 +9,7 @@ interface ProductImageGalleryProps {
 }
 
 const ProductImageGallery = ({ product }: ProductImageGalleryProps) => {
-  const [activeImage, setActiveImage] = useState<string>(product.imageUrl || "");
-  
-  // Generate more relevant placeholder images based on product category
+  // Get relevant placeholder based on product name
   const getRelevantPlaceholder = (productName: string): string => {
     const lowerName = productName.toLowerCase();
     
@@ -35,50 +33,49 @@ const ProductImageGallery = ({ product }: ProductImageGalleryProps) => {
     }
   };
 
-  const fallbackImage = getRelevantPlaceholder(product.name);
-  
-  // Generate additional relevant images for thumbnails
-  const generateAdditionalImages = (): string[] => {
-    const mainImage = product.imageUrl || fallbackImage;
+  // Generate additional relevant images for thumbnails based on product type
+  const generateAdditionalImages = (product: Product): string[] => {
+    const mainImage = product.imageUrl || getRelevantPlaceholder(product.name);
     const additionalImages = [];
-    
-    // Always include the main image
-    additionalImages.push(mainImage);
-    
-    // Add category-specific additional images if needed
     const lowerName = product.name.toLowerCase();
     
+    // Always include the main image first
+    additionalImages.push(mainImage);
+    
+    // Add category-specific additional images
     if (lowerName.includes("refrigerator") || lowerName.includes("fridge")) {
-      additionalImages.push("https://images.unsplash.com/photo-1584568694244-14fbdf83bd30?q=80&w=1000&auto=format&fit=crop");
-      additionalImages.push("https://images.unsplash.com/photo-1601599963565-b7f49d6cf386?q=80&w=1000&auto=format&fit=crop");
+      if (additionalImages.length < 3) additionalImages.push("https://images.unsplash.com/photo-1584568694244-14fbdf83bd30?q=80&w=1000&auto=format&fit=crop");
+      if (additionalImages.length < 3) additionalImages.push("https://images.unsplash.com/photo-1601599963565-b7f49d6cf386?q=80&w=1000&auto=format&fit=crop");
     } else if (lowerName.includes("tv") || lowerName.includes("frame")) {
-      additionalImages.push("https://images.unsplash.com/photo-1593784991095-a205069470b6?q=80&w=1000&auto=format&fit=crop");
-      additionalImages.push("https://images.unsplash.com/photo-1577979749830-f1d742b96791?q=80&w=1000&auto=format&fit=crop");
+      if (additionalImages.length < 3) additionalImages.push("https://images.unsplash.com/photo-1593784991095-a205069470b6?q=80&w=1000&auto=format&fit=crop");
+      if (additionalImages.length < 3) additionalImages.push("https://images.unsplash.com/photo-1577979749830-f1d742b96791?q=80&w=1000&auto=format&fit=crop");
     } else if (lowerName.includes("buds") || lowerName.includes("earphone")) {
-      additionalImages.push("https://images.unsplash.com/photo-1590658268037-6bf12165a8df?q=80&w=1000&auto=format&fit=crop");
-      additionalImages.push("https://images.unsplash.com/photo-1548378329-437e1ef34263?q=80&w=1000&auto=format&fit=crop");
+      if (additionalImages.length < 3) additionalImages.push("https://images.unsplash.com/photo-1590658268037-6bf12165a8df?q=80&w=1000&auto=format&fit=crop");
+      if (additionalImages.length < 3) additionalImages.push("https://images.unsplash.com/photo-1548378329-437e1ef34263?q=80&w=1000&auto=format&fit=crop");
     } else if (lowerName.includes("vacuum") || lowerName.includes("cleaner")) {
-      additionalImages.push("https://images.unsplash.com/photo-1620096906384-7eb3ea11bced?q=80&w=1000&auto=format&fit=crop");
-      additionalImages.push("https://images.unsplash.com/photo-1528740096961-d519b3f91f5a?q=80&w=1000&auto=format&fit=crop");
+      if (additionalImages.length < 3) additionalImages.push("https://images.unsplash.com/photo-1620096906384-7eb3ea11bced?q=80&w=1000&auto=format&fit=crop");
+      if (additionalImages.length < 3) additionalImages.push("https://images.unsplash.com/photo-1528740096961-d519b3f91f5a?q=80&w=1000&auto=format&fit=crop");
     } else if (lowerName.includes("microwave") || lowerName.includes("oven")) {
-      additionalImages.push("https://images.unsplash.com/photo-1574269909862-7e1d70bb8078?q=80&w=1000&auto=format&fit=crop");
-      additionalImages.push("https://images.unsplash.com/photo-1585659722983-3a681849dc8e?q=80&w=1000&auto=format&fit=crop");
+      if (additionalImages.length < 3) additionalImages.push("https://images.unsplash.com/photo-1574269909862-7e1d70bb8078?q=80&w=1000&auto=format&fit=crop");
+      if (additionalImages.length < 3) additionalImages.push("https://images.unsplash.com/photo-1585659722983-3a681849dc8e?q=80&w=1000&auto=format&fit=crop");
     } else if (lowerName.includes("soundbar") || lowerName.includes("music") || lowerName.includes("speaker")) {
-      additionalImages.push("https://images.unsplash.com/photo-1608043152269-423dbba4e7e1?q=80&w=1000&auto=format&fit=crop");
-      additionalImages.push("https://images.unsplash.com/photo-1547592180-85f173990554?q=80&w=1000&auto=format&fit=crop");
+      if (additionalImages.length < 3) additionalImages.push("https://images.unsplash.com/photo-1608043152269-423dbba4e7e1?q=80&w=1000&auto=format&fit=crop");
+      if (additionalImages.length < 3) additionalImages.push("https://images.unsplash.com/photo-1547592180-85f173990554?q=80&w=1000&auto=format&fit=crop");
     } else if (lowerName.includes("ac") || lowerName.includes("air conditioner") || lowerName.includes("windfree")) {
-      additionalImages.push("https://images.unsplash.com/photo-1617784625140-430eaff5b161?q=80&w=1000&auto=format&fit=crop");
-      additionalImages.push("https://images.unsplash.com/photo-1576678927484-cc907957088c?q=80&w=1000&auto=format&fit=crop");
+      if (additionalImages.length < 3) additionalImages.push("https://images.unsplash.com/photo-1617784625140-430eaff5b161?q=80&w=1000&auto=format&fit=crop");
+      if (additionalImages.length < 3) additionalImages.push("https://images.unsplash.com/photo-1576678927484-cc907957088c?q=80&w=1000&auto=format&fit=crop");
     } else {
       // For other products, add generic electronics images
-      additionalImages.push("https://images.unsplash.com/photo-1550009158-9ebf69173e03?q=80&w=1000&auto=format&fit=crop");
-      additionalImages.push("https://images.unsplash.com/photo-1519389950473-47ba0277781c?q=80&w=1000&auto=format&fit=crop");
+      if (additionalImages.length < 3) additionalImages.push("https://images.unsplash.com/photo-1550009158-9ebf69173e03?q=80&w=1000&auto=format&fit=crop");
+      if (additionalImages.length < 3) additionalImages.push("https://images.unsplash.com/photo-1519389950473-47ba0277781c?q=80&w=1000&auto=format&fit=crop");
     }
     
     return additionalImages;
   };
   
-  const productImages = generateAdditionalImages();
+  const productImages = generateAdditionalImages(product);
+  const fallbackImage = getRelevantPlaceholder(product.name);
+  const [activeImage, setActiveImage] = useState<string>(productImages[0]);
   
   return (
     <div className="space-y-6">
@@ -89,12 +86,13 @@ const ProductImageGallery = ({ product }: ProductImageGalleryProps) => {
         transition={{ duration: 0.5 }}
       >
         <img
-          src={activeImage || fallbackImage}
+          src={activeImage}
           alt={product.name}
           className="h-full w-full object-contain p-6"
           onError={(e) => {
             const target = e.target as HTMLImageElement;
             target.src = fallbackImage;
+            setActiveImage(fallbackImage);
           }}
         />
         
