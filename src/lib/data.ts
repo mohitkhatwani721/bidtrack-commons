@@ -1,3 +1,4 @@
+
 import { Product, AuctionSettings, Bid } from "./types";
 
 export const products: Product[] = [
@@ -129,12 +130,19 @@ export const getBidsByUser = (email: string): Bid[] => {
   return bids.filter(bid => bid.userEmail === email);
 };
 
+export const hasUserAlreadyBid = (productId: string, userEmail: string): boolean => {
+  return bids.some(bid => bid.productId === productId && bid.userEmail === userEmail);
+};
+
 export const placeBid = (productId: string, userEmail: string, amount: number): Bid | null => {
   const product = products.find(p => p.id === productId);
   if (!product) return null;
   
   // Check if amount is valid (equal to or greater than price per unit)
   if (amount < product.pricePerUnit) return null;
+  
+  // Check if user has already bid on this product
+  if (hasUserAlreadyBid(productId, userEmail)) return null;
   
   // Create new bid
   const newBid: Bid = {
