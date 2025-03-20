@@ -6,24 +6,43 @@ import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
 import { getBidsByUser, products } from "@/lib/data";
 import { Bid, Product } from "@/lib/types";
-import { ArrowRight, PackageOpen } from "lucide-react";
+import { ArrowRight, PackageOpen, LockKeyhole } from "lucide-react";
 import AuctionTimer from "@/components/ui/AuctionTimer";
+import { getRelevantPlaceholder } from "@/utils/imageUtils";
+import AccountForm from "@/components/auth/AccountForm";
+import { getCurrentUser, isValidUserEmail } from "@/lib/auth";
 
 const UserBids = () => {
   const [email, setEmail] = useState("");
   const [userBids, setUserBids] = useState<Bid[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
+  const [showAuthForm, setShowAuthForm] = useState(false);
 
   useEffect(() => {
     window.scrollTo(0, 0);
+    
+    // Check if user is already logged in
+    const currentUser = getCurrentUser();
+    if (currentUser) {
+      setEmail(currentUser.email);
+    }
   }, []);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    
+    // Check if the email belongs to a registered user
+    if (!isValidUserEmail(email)) {
+      toast.error("This email is not registered. Please create an account first.");
+      setShowAuthForm(true);
+      setIsLoading(false);
+      return;
+    }
     
     // Simulate loading
     setTimeout(() => {
@@ -37,28 +56,13 @@ const UserBids = () => {
   const getProductById = (productId: string): Product | undefined => {
     return products.find(product => product.id === productId);
   };
-
-  // Get relevant placeholder based on product name
-  const getRelevantPlaceholder = (productName: string): string => {
-    const lowerName = productName.toLowerCase();
-    
-    if (lowerName.includes("refrigerator") || lowerName.includes("fridge")) {
-      return "https://images.unsplash.com/photo-1584568694244-14fbdf83bd30?q=80&w=1000&auto=format&fit=crop";
-    } else if (lowerName.includes("tv") || lowerName.includes("frame")) {
-      return "https://images.unsplash.com/photo-1593784991095-a205069470b6?q=80&w=1000&auto=format&fit=crop";
-    } else if (lowerName.includes("buds") || lowerName.includes("earphone")) {
-      return "https://images.unsplash.com/photo-1606220588913-b3aacb4d2f46?q=80&w=1000&auto=format&fit=crop";
-    } else if (lowerName.includes("vacuum") || lowerName.includes("cleaner")) {
-      return "https://images.unsplash.com/photo-1558317374-067fb5f30001?q=80&w=1000&auto=format&fit=crop";
-    } else if (lowerName.includes("microwave") || lowerName.includes("oven")) {
-      return "https://images.unsplash.com/photo-1585659722983-3a681849dc8e?q=80&w=1000&auto=format&fit=crop";
-    } else if (lowerName.includes("soundbar") || lowerName.includes("music") || lowerName.includes("speaker")) {
-      return "https://images.unsplash.com/photo-1545454675-3531b543be5d?q=80&w=1000&auto=format&fit=crop";
-    } else if (lowerName.includes("ac") || lowerName.includes("air conditioner") || lowerName.includes("windfree")) {
-      return "https://images.unsplash.com/photo-1581275288547-1c3bc1edcb7b?q=80&w=1000&auto=format&fit=crop";
-    } else {
-      // Default electronics image
-      return "https://images.unsplash.com/photo-1519389950473-47ba0277781c?q=80&w=1000&auto=format&fit=crop";
+  
+  const handleAuthSuccess = () => {
+    setShowAuthForm(false);
+    const currentUser = getCurrentUser();
+    if (currentUser) {
+      setEmail(currentUser.email);
+      toast.success("You can now view your bids");
     }
   };
 
@@ -84,7 +88,7 @@ const UserBids = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.1 }}
               >
-                View and track all your active bids. Enter your email address to see all the products you've bid on.
+                View and track all your active bids. Enter your registered email address to see all the products you've bid on.
               </motion.p>
             </div>
             
@@ -97,38 +101,77 @@ const UserBids = () => {
               <AuctionTimer />
             </motion.div>
             
-            <motion.div 
-              className="mb-8 bg-white rounded-lg border p-6"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.3 }}
-            >
-              <form onSubmit={handleSearch} className="space-y-4">
-                <h2 className="text-xl font-medium mb-4">Find Your Bids</h2>
-                <div className="flex gap-3">
-                  <Input
-                    type="email"
-                    placeholder="Enter your email address"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    className="flex-grow"
-                  />
-                  <Button type="submit" disabled={isLoading}>
-                    {isLoading ? (
-                      <span className="flex items-center">
-                        Searching
-                        <span className="ml-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                      </span>
-                    ) : (
-                      "Search"
-                    )}
+            {showAuthForm ? (
+              <>
+                <motion.div
+                  className="mb-4 text-center"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                >
+                  <h2 className="text-xl font-medium mb-2">Create an Account or Login</h2>
+                  <p className="text-gray-600 mb-4">
+                    To view your bids, you need to create an account or login with your existing account.
+                  </p>
+                </motion.div>
+                
+                <AccountForm onSuccess={handleAuthSuccess} />
+                
+                <div className="mt-4 text-center">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowAuthForm(false)}
+                  >
+                    Back to Email Search
                   </Button>
                 </div>
-              </form>
-            </motion.div>
+              </>
+            ) : (
+              <motion.div 
+                className="mb-8 bg-white rounded-lg border p-6"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.3 }}
+              >
+                <form onSubmit={handleSearch} className="space-y-4">
+                  <h2 className="text-xl font-medium mb-4">Find Your Bids</h2>
+                  <div className="flex gap-3">
+                    <Input
+                      type="email"
+                      placeholder="Enter your email address"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                      className="flex-grow"
+                    />
+                    <Button type="submit" disabled={isLoading}>
+                      {isLoading ? (
+                        <span className="flex items-center">
+                          Searching
+                          <span className="ml-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                        </span>
+                      ) : (
+                        "Search"
+                      )}
+                    </Button>
+                  </div>
+                  
+                  <div className="text-center mt-4">
+                    <Button 
+                      variant="outline" 
+                      type="button"
+                      onClick={() => setShowAuthForm(true)}
+                      className="text-xs"
+                    >
+                      <LockKeyhole className="h-3 w-3 mr-1" />
+                      Create Account / Login
+                    </Button>
+                  </div>
+                </form>
+              </motion.div>
+            )}
             
-            {hasSearched && (
+            {hasSearched && !showAuthForm && (
               <div className="space-y-6">
                 {userBids.length === 0 ? (
                   <motion.div 

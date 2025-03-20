@@ -8,6 +8,7 @@ import { getHighestBidForProduct, getTotalBidsForProduct } from "@/lib/data";
 import { Badge } from "@/components/ui/badge";
 import AuctionTimer from "@/components/ui/AuctionTimer";
 import { Tag, Users } from "lucide-react";
+import { getRelevantPlaceholder } from "@/utils/imageUtils";
 
 interface ProductCardProps {
   product: Product;
@@ -18,30 +19,6 @@ const ProductCard = ({ product, featured = false }: ProductCardProps) => {
   const [isHovered, setIsHovered] = useState(false);
   const highestBid = getHighestBidForProduct(product.id);
   const totalBids = getTotalBidsForProduct(product.id);
-  
-  // Get relevant placeholder based on product name
-  const getRelevantPlaceholder = (productName: string): string => {
-    const lowerName = productName.toLowerCase();
-    
-    if (lowerName.includes("refrigerator") || lowerName.includes("fridge")) {
-      return "https://images.unsplash.com/photo-1584568694244-14fbdf83bd30?q=80&w=1000&auto=format&fit=crop";
-    } else if (lowerName.includes("tv") || lowerName.includes("frame")) {
-      return "https://images.unsplash.com/photo-1593784991095-a205069470b6?q=80&w=1000&auto=format&fit=crop";
-    } else if (lowerName.includes("buds") || lowerName.includes("earphone")) {
-      return "https://images.unsplash.com/photo-1606220588913-b3aacb4d2f46?q=80&w=1000&auto=format&fit=crop";
-    } else if (lowerName.includes("vacuum") || lowerName.includes("cleaner")) {
-      return "https://images.unsplash.com/photo-1558317374-067fb5f30001?q=80&w=1000&auto=format&fit=crop";
-    } else if (lowerName.includes("microwave") || lowerName.includes("oven")) {
-      return "https://images.unsplash.com/photo-1585659722983-3a681849dc8e?q=80&w=1000&auto=format&fit=crop";
-    } else if (lowerName.includes("soundbar") || lowerName.includes("music") || lowerName.includes("speaker")) {
-      return "https://images.unsplash.com/photo-1545454675-3531b543be5d?q=80&w=1000&auto=format&fit=crop";
-    } else if (lowerName.includes("ac") || lowerName.includes("air conditioner") || lowerName.includes("windfree")) {
-      return "https://images.unsplash.com/photo-1581275288547-1c3bc1edcb7b?q=80&w=1000&auto=format&fit=crop";
-    } else {
-      // Default electronics image
-      return "https://images.unsplash.com/photo-1519389950473-47ba0277781c?q=80&w=1000&auto=format&fit=crop";
-    }
-  };
   
   // Use the product's imageUrl first, or the relevant placeholder if no imageUrl exists
   const imageToDisplay = product.imageUrl || getRelevantPlaceholder(product.name);

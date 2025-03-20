@@ -31,7 +31,7 @@ export const products: Product[] = [
     quantity: 2,
     pricePerUnit: 449.00,
     totalPrice: 898.00,
-    imageUrl: "https://images.samsung.com/is/image/samsung/p6pim/ae/ms32m3000as-sg/gallery/ae-grill-microwave-oven-with-ceramic-inside-ms32m3000as-sg-rperspectivesilver-205345004?$650_519_PNG$",
+    imageUrl: "https://images.unsplash.com/photo-1618160702438-9b02ab6515c9?q=80&w=1000&auto=format&fit=crop",
     description: "Cook, reheat, and defrost with precision using this feature-packed microwave with ceramic interior for easy cleaning."
   },
   {
