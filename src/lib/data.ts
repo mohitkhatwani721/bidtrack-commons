@@ -1,4 +1,3 @@
-
 import { Product, AuctionSettings, Bid } from "./types";
 
 export const products: Product[] = [
@@ -160,16 +159,9 @@ export const placeBid = (productId: string, userEmail: string, amount: number): 
 };
 
 export const getWinningBids = (): Bid[] => {
-  const winningBids: Bid[] = [];
-  
-  products.forEach(product => {
-    const highestBid = getHighestBidForProduct(product.id);
-    if (highestBid) {
-      winningBids.push(highestBid);
-    }
-  });
-  
-  return winningBids;
+  // Return all bids instead of just the highest bids per product
+  // This ensures all bids, including those by mohit.khatwani@gmail.com, are visible
+  return [...bids].sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
 };
 
 export const isAuctionActive = (): boolean => {
