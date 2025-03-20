@@ -1,12 +1,10 @@
 
-import { useState } from "react";
 import { motion } from "framer-motion";
-import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { placeBid, getHighestBidForProduct } from "@/lib/data";
 import { ArrowRight } from "lucide-react";
+import { useBidForm } from "@/hooks/useBidForm";
 
 interface BidFormProps {
   productId: string;
@@ -14,51 +12,15 @@ interface BidFormProps {
 }
 
 const BidForm = ({ productId, startingPrice }: BidFormProps) => {
-  const [email, setEmail] = useState("");
-  const [amount, setAmount] = useState(startingPrice.toString());
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  
-  const highestBid = getHighestBidForProduct(productId);
-  const minBidAmount = highestBid ? highestBid.amount : startingPrice;
-  
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!email || !amount) {
-      toast.error("Please fill in all fields");
-      return;
-    }
-    
-    // Validate email
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      toast.error("Please enter a valid email address");
-      return;
-    }
-    
-    // Validate amount
-    const bidAmount = parseFloat(amount);
-    if (isNaN(bidAmount) || bidAmount < minBidAmount) {
-      toast.error(`Bid amount must be at least AED ${minBidAmount.toLocaleString()}`);
-      return;
-    }
-    
-    setIsSubmitting(true);
-    
-    // Place bid
-    const bid = placeBid(productId, email, bidAmount);
-    
-    setTimeout(() => {
-      setIsSubmitting(false);
-      
-      if (bid) {
-        toast.success("Your bid has been placed successfully!");
-        setAmount(bidAmount.toString());
-      } else {
-        toast.error("Failed to place bid. Please try again.");
-      }
-    }, 1000);
-  };
+  const {
+    email,
+    setEmail,
+    amount,
+    setAmount,
+    isSubmitting,
+    minBidAmount,
+    handleSubmit
+  } = useBidForm({ productId, startingPrice });
   
   return (
     <motion.div
