@@ -6,11 +6,12 @@ import Footer from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { products, bids, getWinningBids, isAuctionActive, auctionSettings } from "@/lib/data";
+import { products, bids, getWinningBids, isAuctionActive, auctionSettings, isWinningBid, getWinners } from "@/lib/data";
 import { Bid, Product } from "@/lib/types";
 import { toast } from "sonner";
 import AuctionTimer from "@/components/ui/AuctionTimer";
-import { DownloadIcon, LockIcon } from "lucide-react";
+import { DownloadIcon, LockIcon, TrophyIcon } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 const Admin = () => {
   const [password, setPassword] = useState("");
@@ -19,6 +20,7 @@ const Admin = () => {
   const [winningBids, setWinningBids] = useState<Bid[]>([]);
   const [showAllBids, setShowAllBids] = useState(true); // Default to showing all bids
   const [filter, setFilter] = useState("");
+  const [winners, setWinners] = useState<Map<string, Bid>>(new Map());
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -27,6 +29,7 @@ const Admin = () => {
   useEffect(() => {
     if (isAuthenticated) {
       setWinningBids(getWinningBids());
+      setWinners(getWinners());
     }
   }, [isAuthenticated]);
 
@@ -58,11 +61,12 @@ const Admin = () => {
     
     // This would typically generate a CSV or Excel file
     const csvContent = "data:text/csv;charset=utf-8," 
-      + "Product ID,Product Name,Model Code,Zone,Price Per Unit,Winning Bid Amount,Bidder Email\n"
+      + "Product ID,Product Name,Model Code,Zone,Price Per Unit,Winning Bid Amount,Bidder Email,Is Winner\n"
       + winningBids.map(bid => {
           const product = getProductById(bid.productId);
+          const isWinner = isWinningBid(bid);
           return product 
-            ? `${product.id},${product.name},${product.modelCode},${product.zone},${product.pricePerUnit},${bid.amount},${bid.userEmail}`
+            ? `${product.id},${product.name},${product.modelCode},${product.zone},${product.pricePerUnit},${bid.amount},${bid.userEmail},${isWinner ? "Yes" : "No"}`
             : "";
         }).join("\n");
     
@@ -78,6 +82,11 @@ const Admin = () => {
   const filteredBids = filter
     ? winningBids.filter(bid => bid.userEmail.toLowerCase().includes(filter.toLowerCase()))
     : winningBids;
+
+  // Filter to only show winning bids if showAllBids is false
+  const displayBids = showAllBids 
+    ? filteredBids 
+    : filteredBids.filter(bid => isWinningBid(bid));
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -181,7 +190,7 @@ const Admin = () => {
                   <div className="mb-4 space-y-4">
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-gray-500">
-                        {bids.length} total bids, showing {filteredBids.length} bids
+                        {bids.length} total bids, showing {displayBids.length} bids
                       </span>
                       
                       <Button 
@@ -215,15 +224,18 @@ const Admin = () => {
                           <TableHead>Bid Amount</TableHead>
                           <TableHead>Bidder</TableHead>
                           <TableHead>Time</TableHead>
+                          <TableHead>Status</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {filteredBids.map((bid, index) => {
+                        {displayBids.map((bid, index) => {
                           const product = getProductById(bid.productId);
                           if (!product) return null;
                           
+                          const isWinner = isWinningBid(bid);
+                          
                           return (
-                            <TableRow key={bid.id}>
+                            <TableRow key={bid.id} className={isWinner ? "bg-green-50" : ""}>
                               <TableCell className="font-medium">{product.name}</TableCell>
                               <TableCell>{product.zone}</TableCell>
                               <TableCell>{product.modelCode}</TableCell>
@@ -231,19 +243,59 @@ const Admin = () => {
                               <TableCell>AED {bid.amount.toLocaleString()}</TableCell>
                               <TableCell className="font-medium">{bid.userEmail}</TableCell>
                               <TableCell>{bid.timestamp.toLocaleString()}</TableCell>
+                              <TableCell>
+                                {isWinner ? (
+                                  <Badge className="bg-green-500 flex items-center space-x-1">
+                                    <TrophyIcon className="h-3 w-3 mr-1" />
+                                    Winner
+                                  </Badge>
+                                ) : (
+                                  <Badge variant="outline" className="text-gray-500">
+                                    Outbid
+                                  </Badge>
+                                )}
+                              </TableCell>
                             </TableRow>
                           );
                         })}
                         
-                        {filteredBids.length === 0 && (
+                        {displayBids.length === 0 && (
                           <TableRow>
-                            <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+                            <TableCell colSpan={8} className="text-center py-8 text-gray-500">
                               {filter ? `No bids found for "${filter}"` : "No bids have been placed yet."}
                             </TableCell>
                           </TableRow>
                         )}
                       </TableBody>
                     </Table>
+                  </div>
+
+                  <div className="mt-8">
+                    <h3 className="text-lg font-medium mb-4">Winners Summary</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {products.map(product => {
+                        const winningBid = getHighestBidForProduct(product.id);
+                        return (
+                          <div key={product.id} className="p-4 border rounded-lg flex items-start space-x-3">
+                            <div className="bg-gray-100 rounded-md p-2 flex-shrink-0">
+                              <TrophyIcon className={`h-5 w-5 ${winningBid ? 'text-yellow-500' : 'text-gray-400'}`} />
+                            </div>
+                            <div>
+                              <h4 className="font-medium">{product.name}</h4>
+                              <p className="text-sm text-gray-500">{product.zone} - {product.modelCode}</p>
+                              {winningBid ? (
+                                <div className="mt-1">
+                                  <p className="text-sm font-medium">Winner: <span className="text-green-600">{winningBid.userEmail}</span></p>
+                                  <p className="text-sm">Bid Amount: AED {winningBid.amount.toLocaleString()}</p>
+                                </div>
+                              ) : (
+                                <p className="text-sm text-gray-500 mt-1">No bids yet</p>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
                 

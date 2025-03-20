@@ -192,6 +192,26 @@ export const getWinningBids = (): Bid[] => {
   return [...bids].sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
 };
 
+export const getWinners = (): Map<string, Bid> => {
+  const winners = new Map<string, Bid>();
+  
+  const productIds = [...new Set(bids.map(bid => bid.productId))];
+  
+  productIds.forEach(productId => {
+    const highestBid = getHighestBidForProduct(productId);
+    if (highestBid) {
+      winners.set(productId, highestBid);
+    }
+  });
+  
+  return winners;
+};
+
+export const isWinningBid = (bid: Bid): boolean => {
+  const highestBid = getHighestBidForProduct(bid.productId);
+  return highestBid?.id === bid.id;
+};
+
 export const isAuctionActive = (): boolean => {
   return true;
 };
