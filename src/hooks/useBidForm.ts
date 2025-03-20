@@ -1,7 +1,8 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { placeBid, getHighestBidForProduct, hasUserAlreadyBid } from "@/lib/data";
+import { getHighestBidForProduct, placeBidToSupabase } from "@/lib/supabase";
+import { getCurrentUser } from "@/lib/auth";
 
 interface UseBidFormProps {
   productId: string;
@@ -13,11 +14,21 @@ export function useBidForm({ productId, startingPrice, initialEmail = "" }: UseB
   const [email, setEmail] = useState(initialEmail);
   const [amount, setAmount] = useState(startingPrice.toString());
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [minBidAmount, setMinBidAmount] = useState(startingPrice);
   
-  const highestBid = getHighestBidForProduct(productId);
-  const minBidAmount = highestBid ? highestBid.amount : startingPrice;
+  // Get the highest bid when the component mounts
+  useState(() => {
+    const fetchHighestBid = async () => {
+      const highestBid = await getHighestBidForProduct(productId);
+      if (highestBid) {
+        setMinBidAmount(highestBid.amount > startingPrice ? highestBid.amount : startingPrice);
+      }
+    };
+    
+    fetchHighestBid();
+  });
   
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!email || !amount) {
@@ -39,27 +50,21 @@ export function useBidForm({ productId, startingPrice, initialEmail = "" }: UseB
       return;
     }
     
-    // Check if user has already bid on this product
-    if (hasUserAlreadyBid(productId, email)) {
-      toast.error("You have already placed a bid on this product");
-      return;
-    }
-    
     setIsSubmitting(true);
     
-    // Place bid
-    const bid = placeBid(productId, email, bidAmount);
+    // Get current user or use email from form
+    const currentUser = getCurrentUser();
+    const userEmail = currentUser ? currentUser.email : email;
     
-    setTimeout(() => {
-      setIsSubmitting(false);
-      
-      if (bid) {
-        toast.success("Your bid has been placed successfully!");
-        setAmount(bidAmount.toString());
-      } else {
-        toast.error("Failed to place bid. Please try again.");
-      }
-    }, 1000);
+    // Place bid using Supabase
+    const bid = await placeBidToSupabase(productId, userEmail, bidAmount);
+    
+    setIsSubmitting(false);
+    
+    if (bid) {
+      toast.success("Your bid has been placed successfully!");
+      setAmount(bidAmount.toString());
+    }
   };
 
   return {

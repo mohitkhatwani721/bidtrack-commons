@@ -1,10 +1,11 @@
 
 import { useEffect, useState } from "react";
 import { Bid } from "@/lib/types";
-import { bids } from "@/lib/data";
 import { getCurrentUser } from "@/lib/auth";
 import BidLoginPrompt from "./BidLoginPrompt";
 import BidList from "./BidList";
+import { getBidsForProduct } from "@/lib/supabase";
+import { toast } from "sonner";
 
 interface BidHistoryProps {
   productId: string;
@@ -13,24 +14,36 @@ interface BidHistoryProps {
 const BidHistory = ({ productId }: BidHistoryProps) => {
   const [productBids, setProductBids] = useState<Bid[]>([]);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [loading, setLoading] = useState(false);
   
   const currentUser = getCurrentUser();
   
-  // Update bids when they change or when user/admin status changes
+  // Fetch bids from Supabase
+  const fetchBids = async () => {
+    setLoading(true);
+    try {
+      const bids = await getBidsForProduct(productId);
+      
+      // For regular users, filter to only show their bids
+      if (!isAdmin && currentUser) {
+        const userBids = bids.filter(bid => bid.userEmail === currentUser.email);
+        setProductBids(userBids);
+      } else {
+        setProductBids(bids);
+      }
+    } catch (error) {
+      console.error("Error fetching bids:", error);
+      toast.error("Failed to load bids");
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // Update bids when component mounts or when user/admin status changes
   useEffect(() => {
-    // Get bids for this product and sort by timestamp (newest first)
-    const filteredBids = bids
-      .filter(bid => {
-        // For admin, show all bids for this product
-        if (isAdmin) {
-          return bid.productId === productId;
-        }
-        // For user, only show their own bids for this product
-        return bid.productId === productId && (currentUser ? bid.userEmail === currentUser.email : false);
-      })
-      .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
-    
-    setProductBids(filteredBids);
+    if (currentUser || isAdmin) {
+      fetchBids();
+    }
   }, [productId, isAdmin, currentUser]);
   
   const handleAdminLogin = (adminLoggedIn: boolean) => {
@@ -42,7 +55,8 @@ const BidHistory = ({ productId }: BidHistoryProps) => {
   };
   
   const handleAuthSuccess = () => {
-    // This will trigger the useEffect to update bids based on the now logged-in user
+    // This will trigger the useEffect to fetch bids based on the now logged-in user
+    fetchBids();
   };
   
   if (!currentUser && !isAdmin) {
@@ -58,7 +72,8 @@ const BidHistory = ({ productId }: BidHistoryProps) => {
     <BidList 
       bids={productBids} 
       isAdmin={isAdmin} 
-      onLogout={handleLogout} 
+      onLogout={handleLogout}
+      isLoading={loading}
     />
   );
 };
