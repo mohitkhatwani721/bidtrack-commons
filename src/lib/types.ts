@@ -17,6 +17,7 @@ export interface Bid {
   userEmail: string;
   amount: number;
   timestamp: Date;
+  product?: Product | null;
 }
 
 export interface AuctionSettings {

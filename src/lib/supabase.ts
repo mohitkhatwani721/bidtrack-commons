@@ -53,7 +53,7 @@ export const getUserBids = async (userEmail: string) => {
   
   const { data, error } = await supabase
     .from('bids')
-    .select('*, products(name, image_url, price_per_unit)')
+    .select('*, products(*)')
     .eq('user_email', userEmail)
     .order('created_at', { ascending: false });
     
@@ -63,7 +63,7 @@ export const getUserBids = async (userEmail: string) => {
     return [];
   }
   
-  // Transform to match our Bid interface
+  // Transform to match our Bid interface with product details
   return data.map(bid => ({
     id: bid.id,
     productId: bid.product_id,
@@ -71,9 +71,15 @@ export const getUserBids = async (userEmail: string) => {
     amount: bid.amount,
     timestamp: new Date(bid.created_at),
     product: bid.products ? {
+      id: bid.products.id,
       name: bid.products.name,
+      modelCode: bid.products.model_code || '',
+      zone: bid.products.zone || '',
+      quantity: bid.products.quantity || 1,
+      pricePerUnit: bid.products.price_per_unit || 0,
+      totalPrice: bid.products.total_price || 0,
       imageUrl: bid.products.image_url,
-      pricePerUnit: bid.products.price_per_unit
+      description: bid.products.description
     } : null
   }));
 };

@@ -5,11 +5,10 @@ import { Link } from "react-router-dom";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { getBidsByUser, products } from "@/lib/data";
+import { getUserBids } from "@/lib/supabase";
 import { Bid, Product } from "@/lib/types";
-import { ArrowRight, PackageOpen, LockKeyhole } from "lucide-react";
+import { ArrowRight, PackageOpen } from "lucide-react";
 import AuctionTimer from "@/components/ui/AuctionTimer";
 import { getRelevantPlaceholder } from "@/utils/imageUtils";
 import AccountForm from "@/components/auth/AccountForm";
@@ -37,20 +36,20 @@ const UserBids = () => {
     }
   }, []);
 
-  const fetchUserBids = (email: string) => {
+  const fetchUserBids = async (email: string) => {
     setIsLoading(true);
     
-    // Simulate loading
-    setTimeout(() => {
-      const bids = getBidsByUser(email);
+    try {
+      // Get bids from Supabase
+      const bids = await getUserBids(email);
       setUserBids(bids);
-      setIsLoading(false);
       setHasSearched(true);
-    }, 1000);
-  };
-
-  const getProductById = (productId: string): Product | undefined => {
-    return products.find(product => product.id === productId);
+    } catch (error) {
+      console.error("Error fetching bids:", error);
+      toast.error("Failed to load your bids");
+    } finally {
+      setIsLoading(false);
+    }
   };
   
   const handleAuthSuccess = () => {
@@ -146,7 +145,14 @@ const UserBids = () => {
             
             {hasSearched && isLoggedIn && (
               <div className="space-y-6">
-                {userBids.length === 0 ? (
+                {isLoading ? (
+                  <div className="text-center py-8">
+                    <div className="flex justify-center">
+                      <div className="h-8 w-8 animate-spin rounded-full border-2 border-blue-500 border-t-transparent"></div>
+                    </div>
+                    <p className="text-gray-500 mt-4">Loading your bids...</p>
+                  </div>
+                ) : userBids.length === 0 ? (
                   <motion.div 
                     className="text-center py-12"
                     initial={{ opacity: 0 }}
@@ -171,11 +177,8 @@ const UserBids = () => {
                     <h2 className="text-xl font-medium mb-4">Your Bids</h2>
                     <div className="space-y-4">
                       {userBids.map((bid, index) => {
-                        const product = getProductById(bid.productId);
-                        if (!product) return null;
-                        
                         // Get image URL or fallback to relevant placeholder
-                        const imageToDisplay = product.imageUrl || getRelevantPlaceholder(product.name);
+                        const imageToDisplay = bid.product?.imageUrl || getRelevantPlaceholder(bid.product?.name || "product");
                         
                         return (
                           <motion.div 
@@ -189,18 +192,18 @@ const UserBids = () => {
                               <div className="bg-gray-50 aspect-square md:aspect-auto flex items-center justify-center p-2">
                                 <img
                                   src={imageToDisplay}
-                                  alt={product.name}
+                                  alt={bid.product?.name || "Product"}
                                   className="h-24 w-24 object-contain"
                                   onError={(e) => {
                                     const target = e.target as HTMLImageElement;
-                                    target.src = getRelevantPlaceholder(product.name);
+                                    target.src = getRelevantPlaceholder(bid.product?.name || "product");
                                   }}
                                 />
                               </div>
                               
                               <div className="p-4 md:col-span-2">
-                                <h3 className="font-medium text-lg mb-1">{product.name}</h3>
-                                <p className="text-sm text-gray-500 mb-2">{product.modelCode}</p>
+                                <h3 className="font-medium text-lg mb-1">{bid.product?.name || "Unknown Product"}</h3>
+                                <p className="text-sm text-gray-500 mb-2">{bid.product?.modelCode || "N/A"}</p>
                                 <p className="text-xs text-gray-500">
                                   Bid placed on {bid.timestamp.toLocaleDateString()}
                                 </p>
@@ -213,7 +216,7 @@ const UserBids = () => {
                                 </div>
                                 
                                 <Button asChild variant="outline" size="sm" className="mt-2">
-                                  <Link to={`/product/${product.id}`}>
+                                  <Link to={`/product/${bid.productId}`}>
                                     View Product
                                     <ArrowRight className="ml-2 h-3 w-3" />
                                   </Link>
