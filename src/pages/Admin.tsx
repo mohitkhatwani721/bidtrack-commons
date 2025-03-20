@@ -9,10 +9,28 @@ import { products, bids, getWinningBids, isAuctionActive, auctionSettings, isWin
 import { Bid, Product } from "@/lib/types";
 import { toast } from "sonner";
 import AuctionTimer from "@/components/ui/AuctionTimer";
-import { DownloadIcon, LockIcon, TrophyIcon, CalendarIcon, Settings2Icon } from "lucide-react";
+import { 
+  DownloadIcon, 
+  LockIcon, 
+  TrophyIcon, 
+  CalendarIcon, 
+  Settings2Icon,
+  AlertCircleIcon,
+  CheckCircleIcon 
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 
@@ -27,6 +45,8 @@ const Admin = () => {
   const [startDate, setStartDate] = useState<Date>(auctionSettings.startDate);
   const [endDate, setEndDate] = useState<Date>(auctionSettings.endDate);
   const [isUpdatingDates, setIsUpdatingDates] = useState(false);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [dateError, setDateError] = useState<string | null>(null);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -40,6 +60,16 @@ const Admin = () => {
       setEndDate(auctionSettings.endDate);
     }
   }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (startDate && endDate) {
+      if (endDate <= startDate) {
+        setDateError("End date must be after start date");
+      } else {
+        setDateError(null);
+      }
+    }
+  }, [startDate, endDate]);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -86,16 +116,39 @@ const Admin = () => {
     link.click();
   };
 
-  const handleUpdateAuctionDates = () => {
+  const initiateUpdateDates = () => {
+    // Check if dates are valid before showing confirmation dialog
+    if (dateError) {
+      toast.error(dateError);
+      return;
+    }
+    
+    // Show confirmation dialog
+    setShowConfirmDialog(true);
+  };
+
+  const confirmUpdateDates = () => {
     setIsUpdatingDates(true);
     
     setTimeout(() => {
-      // Update the auction dates
-      updateAuctionDates(startDate, endDate);
-      
-      // Show success message
-      toast.success("Auction dates updated successfully!");
-      setIsUpdatingDates(false);
+      try {
+        // Update the auction dates
+        updateAuctionDates(startDate, endDate);
+        
+        // Show success message
+        toast.success("Auction dates updated successfully!");
+        
+        // Close the dialog
+        setShowConfirmDialog(false);
+      } catch (error) {
+        if (error instanceof Error) {
+          toast.error(`Failed to update dates: ${error.message}`);
+        } else {
+          toast.error("Failed to update dates");
+        }
+      } finally {
+        setIsUpdatingDates(false);
+      }
     }, 1000);
   };
 
@@ -218,7 +271,6 @@ const Admin = () => {
                             selected={startDate}
                             onSelect={(date) => date && setStartDate(date)}
                             initialFocus
-                            className="pointer-events-auto"
                           />
                         </PopoverContent>
                       </Popover>
@@ -245,17 +297,23 @@ const Admin = () => {
                             selected={endDate}
                             onSelect={(date) => date && setEndDate(date)}
                             initialFocus
-                            className="pointer-events-auto"
                           />
                         </PopoverContent>
                       </Popover>
                     </div>
                   </div>
                   
+                  {dateError && (
+                    <div className="mb-4 p-2 bg-red-50 border border-red-200 rounded-md flex items-start space-x-2">
+                      <AlertCircleIcon className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
+                      <span className="text-sm text-red-700">{dateError}</span>
+                    </div>
+                  )}
+                  
                   <Button 
-                    onClick={handleUpdateAuctionDates} 
+                    onClick={initiateUpdateDates} 
                     className="bg-blue-500 hover:bg-blue-600 text-white"
-                    disabled={isUpdatingDates}
+                    disabled={!!dateError || isUpdatingDates}
                   >
                     {isUpdatingDates ? (
                       <span className="flex items-center">
@@ -267,6 +325,52 @@ const Admin = () => {
                     )}
                   </Button>
                 </div>
+                
+                {/* Confirmation Dialog */}
+                <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Confirm Date Changes</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        <p>Are you sure you want to update the auction dates?</p>
+                        <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
+                          <div className="space-y-1">
+                            <p className="font-medium">New Start Date:</p>
+                            <p className="text-gray-700">{startDate ? format(startDate, "PPP") : "Not set"}</p>
+                          </div>
+                          <div className="space-y-1">
+                            <p className="font-medium">New End Date:</p>
+                            <p className="text-gray-700">{endDate ? format(endDate, "PPP") : "Not set"}</p>
+                          </div>
+                        </div>
+                        <p className="mt-4 text-amber-600 flex items-center">
+                          <AlertCircleIcon className="h-4 w-4 mr-2" />
+                          This action cannot be undone.
+                        </p>
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel disabled={isUpdatingDates}>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={confirmUpdateDates}
+                        disabled={isUpdatingDates}
+                        className="bg-blue-500 hover:bg-blue-600"
+                      >
+                        {isUpdatingDates ? (
+                          <span className="flex items-center">
+                            Updating
+                            <span className="ml-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                          </span>
+                        ) : (
+                          <span className="flex items-center">
+                            <CheckCircleIcon className="mr-2 h-4 w-4" />
+                            Confirm Update
+                          </span>
+                        )}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
                 
                 <div className="bg-white rounded-lg border p-6">
                   <div className="flex items-center justify-between mb-6">
