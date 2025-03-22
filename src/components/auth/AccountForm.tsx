@@ -30,6 +30,9 @@ const AccountForm = ({ onSuccess }: AccountFormProps) => {
     setIsLoggingIn(true);
     
     try {
+      // Clear any existing user data before login
+      localStorage.removeItem("currentUser");
+      
       const user = await login(loginEmail, loginPassword);
       
       if (user && onSuccess) {
@@ -52,6 +55,9 @@ const AccountForm = ({ onSuccess }: AccountFormProps) => {
     }
     
     try {
+      // Clear any existing user data before register
+      localStorage.removeItem("currentUser");
+      
       const user = await register(registerEmail, registerName, registerPassword);
       
       if (user && onSuccess) {

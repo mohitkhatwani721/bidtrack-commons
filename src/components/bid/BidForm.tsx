@@ -34,6 +34,9 @@ const BidForm = ({ productId, startingPrice }: BidFormProps) => {
   
   useEffect(() => {
     const loadUser = async () => {
+      // Clear any stale user data in localStorage
+      localStorage.removeItem("currentUser");
+      
       const user = await getCurrentUser();
       setCurrentUser(user);
       if (user) {
@@ -46,6 +49,9 @@ const BidForm = ({ productId, startingPrice }: BidFormProps) => {
   
   const handleAuthSuccess = async () => {
     setShowAuthForm(false);
+    // Clear any existing session data
+    localStorage.removeItem("currentUser");
+    
     const user = await getCurrentUser();
     setCurrentUser(user);
     if (user) {

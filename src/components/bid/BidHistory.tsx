@@ -20,6 +20,9 @@ const BidHistory = ({ productId }: BidHistoryProps) => {
   // Fetch the current user when component mounts
   useEffect(() => {
     const loadUser = async () => {
+      // Clear any stale user data in localStorage
+      localStorage.removeItem("currentUser");
+      
       const user = await getCurrentUser();
       setCurrentUser(user);
     };
@@ -64,6 +67,9 @@ const BidHistory = ({ productId }: BidHistoryProps) => {
   };
   
   const handleAuthSuccess = async () => {
+    // Clear any existing session data
+    localStorage.removeItem("currentUser");
+    
     const user = await getCurrentUser();
     setCurrentUser(user);
     // This will trigger the useEffect to fetch bids based on the now logged-in user
