@@ -91,6 +91,20 @@ const clearExpiredCache = (): void => {
   }
 };
 
+// Properly sanitize Samsung URLs that are problematic
+export const sanitizeSamsungUrl = (url: string): string => {
+  if (!url) return url;
+  
+  if (url.includes('samsung.com')) {
+    // Samsung URLs often break with query parameters
+    const cleanUrl = url.split('?')[0];
+    console.log(`Sanitizing Samsung URL globally: ${url} -> ${cleanUrl}`);
+    return cleanUrl;
+  }
+  
+  return url;
+};
+
 // Check if an image URL is valid
 const isValidImageUrl = (url: string): boolean => {
   if (!url || typeof url !== 'string') return false;
@@ -111,13 +125,8 @@ const isValidImageUrl = (url: string): boolean => {
 const sanitizeImageUrl = (url: string): string => {
   if (!url) return url;
   
-  // Handle Samsung URLs which often have problematic parameters
-  if (url.includes('samsung.com')) {
-    // Remove all query parameters from Samsung URLs as they often cause issues
-    return url.split('?')[0];
-  }
-  
-  return url;
+  // Always sanitize Samsung URLs first as they're problematic
+  return sanitizeSamsungUrl(url);
 };
 
 // Convert an image to a low-quality data URL for quick loading
@@ -143,6 +152,11 @@ export const generateLowQualityImagePlaceholder = async (url: string): Promise<s
     // Handle local URLs differently
     if (sanitizedUrl.startsWith('/')) {
       // For local images, just return the URL as we don't need to optimize
+      return sanitizedUrl;
+    }
+    
+    // For Samsung URLs, just return the sanitized URL directly
+    if (sanitizedUrl.includes('samsung.com')) {
       return sanitizedUrl;
     }
     
@@ -215,7 +229,7 @@ export const optimizeImageUrl = (
   height?: number,
   quality: number = 80
 ): string => {
-  // Sanitize URL first
+  // Sanitize URL first (especially important for Samsung URLs)
   const sanitizedUrl = sanitizeImageUrl(url);
   
   // Return original URL for invalid URLs or local assets
@@ -225,6 +239,12 @@ export const optimizeImageUrl = (
   }
   
   if (sanitizedUrl.startsWith('/')) {
+    return sanitizedUrl;
+  }
+  
+  // Samsung URLs: ALWAYS return the sanitized URL without any optimization
+  if (sanitizedUrl.includes('samsung.com')) {
+    console.log(`Using direct sanitized URL for Samsung: ${sanitizedUrl}`);
     return sanitizedUrl;
   }
   
@@ -240,20 +260,7 @@ export const optimizeImageUrl = (
     return cache[cacheKey].optimizedUrl;
   }
   
-  // If it's a Samsung image, don't try to add parameters as they often break the URL
-  if (sanitizedUrl.includes('samsung.com')) {
-    // Just use the sanitized URL without any parameters
-    cache[cacheKey] = {
-      url: sanitizedUrl,
-      optimizedUrl: sanitizedUrl,
-      timestamp: Date.now()
-    };
-    saveImageCache(cache);
-    return sanitizedUrl;
-  }
-  
-  // If it's an Unsplash image, add size optimization parameters
-  let optimizedUrl = sanitizedUrl;
+  // For Unsplash and other image APIs, optimize as before
   if (sanitizedUrl.includes('images.unsplash.com')) {
     const hasParams = sanitizedUrl.includes('?');
     const widthParam = `w=${optimizedWidth}`;
@@ -275,11 +282,6 @@ export const optimizeImageUrl = (
       }
     } else {
       optimizedUrl = `${sanitizedUrl}?${widthParam}&${qualityParam}&${fitParam}&${formatParam}`;
-    }
-  } else if (sanitizedUrl.includes('images.samsung.com')) {
-    // Optimize Samsung images if they support similar parameters
-    if (!sanitizedUrl.includes('?')) {
-      optimizedUrl = `${sanitizedUrl}?width=${optimizedWidth}&quality=${quality}`;
     }
   }
   
@@ -318,8 +320,13 @@ export const preloadImages = (urls: string[]): Promise<Record<string, boolean>> 
         generateLowQualityImagePlaceholder(url).catch(() => null);
         
         const img = new Image();
-        const optimizedUrl = optimizeImageUrl(url);
-        img.src = optimizedUrl;
+        
+        // Special handling for Samsung URLs
+        const imgUrl = url.includes('samsung.com') 
+          ? sanitizeSamsungUrl(url)  // Use direct sanitized URL for Samsung
+          : optimizeImageUrl(url);   // Use optimization for other URLs
+          
+        img.src = imgUrl;
         
         // Set a timeout to prevent hanging on slow-loading images
         const timeout = setTimeout(() => {
@@ -417,4 +424,3 @@ export const generateAdditionalImages = (productName: string, mainImage: string)
   
   return additionalImages;
 };
-

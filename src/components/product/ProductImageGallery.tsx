@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { Product } from "@/lib/types";
@@ -17,43 +16,62 @@ interface ProductImageGalleryProps {
 }
 
 const ProductImageGallery = ({ product }: ProductImageGalleryProps) => {
-  // Sanitize Samsung URLs by removing query parameters
+  // Better sanitize function for Samsung URLs
   const sanitizeUrl = (url: string): string => {
     if (!url) return url;
+    
+    // Samsung URLs often break with query parameters
     if (url.includes('samsung.com') && url.includes('?')) {
-      console.log('Sanitizing Samsung URL:', url);
-      return url.split('?')[0];
+      const cleanUrl = url.split('?')[0];
+      console.log(`Sanitizing Samsung URL: ${url} -> ${cleanUrl}`);
+      return cleanUrl;
     }
+    
     return url;
   };
 
   // Process the main image URL first
   const mainImageRaw = product.imageUrl;
+  console.log("Original main image:", mainImageRaw);
+  
   const mainImage = mainImageRaw ? sanitizeUrl(mainImageRaw) : getRelevantPlaceholder(product.name);
+  console.log("Processed main image:", mainImage);
   
   // Generate additional relevant images for thumbnails based on product type
   const productImages = generateAdditionalImages(product.name, mainImage);
+  console.log("Generated product images:", productImages);
   
   const fallbackImage = getRelevantPlaceholder(product.name);
-  const [activeImage, setActiveImage] = useState<string>(productImages[0]);
+  const [activeImage, setActiveImage] = useState<string>(mainImage); // Use main image as initial active
   const [imagesLoaded, setImagesLoaded] = useState<Record<string, boolean>>({});
   const [placeholders, setPlaceholders] = useState<Record<string, string>>({});
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
   const isMounted = useRef(true);
   
+  // Reset active image if product changes
+  useEffect(() => {
+    setActiveImage(mainImage);
+    // Reset error state for new product
+    setImageErrors({});
+  }, [product.id, mainImage]);
+  
   // Improved error handling for image loading
   const handleImageError = (url: string) => {
     console.log(`Error loading image: ${url}`);
-    setImageErrors(prev => ({ ...prev, [url]: true }));
     
-    // If the main image failed to load, use fallback
-    if (url === activeImage) {
-      console.log(`Setting fallback for active image: ${url} -> ${fallbackImage}`);
-      setActiveImage(fallbackImage);
-      toast.error("Unable to load product image. Using placeholder instead.", {
-        id: "image-error",
-        duration: 3000
-      });
+    // Don't set error state for already sanitized URLs to prevent loops
+    if (!url.includes('samsung.com') || !url.includes('?')) {
+      setImageErrors(prev => ({ ...prev, [url]: true }));
+      
+      // If the main image failed to load, use fallback
+      if (url === activeImage) {
+        console.log(`Setting fallback for active image: ${url} -> ${fallbackImage}`);
+        setActiveImage(fallbackImage);
+        toast.error("Unable to load product image. Using placeholder instead.", {
+          id: "image-error",
+          duration: 3000
+        });
+      }
     }
   };
   
@@ -61,16 +79,20 @@ const ProductImageGallery = ({ product }: ProductImageGalleryProps) => {
   const getImageSource = (url: string) => {
     // Always check if there's an error with this URL first
     if (imageErrors[url]) {
+      console.log(`Using fallback for image with error: ${url} -> ${fallbackImage}`);
       return fallbackImage;
     }
     
-    // For Samsung URLs, use the raw URL without optimization 
-    if (url.includes('samsung.com')) {
-      return sanitizeUrl(url);
+    // Sanitize URL first (especially important for Samsung)
+    const sanitizedUrl = sanitizeUrl(url);
+    
+    // For Samsung URLs, use the sanitized URL without optimization 
+    if (sanitizedUrl.includes('samsung.com')) {
+      return sanitizedUrl;
     }
     
     // For other URLs, use optimization
-    return optimizeImageUrl(url, url === activeImage);
+    return optimizeImageUrl(sanitizedUrl, url === activeImage);
   };
   
   // Load low-quality placeholders first
@@ -79,7 +101,9 @@ const ProductImageGallery = ({ product }: ProductImageGalleryProps) => {
       try {
         const placeholderPromises = productImages.map(async (image) => {
           try {
-            const placeholder = await generateLowQualityImagePlaceholder(image);
+            // Sanitize URL before generating placeholder
+            const sanitizedImage = sanitizeUrl(image);
+            const placeholder = await generateLowQualityImagePlaceholder(sanitizedImage);
             if (placeholder && isMounted.current) {
               setPlaceholders((prev) => ({
                 ...prev,
@@ -108,7 +132,10 @@ const ProductImageGallery = ({ product }: ProductImageGalleryProps) => {
   useEffect(() => {
     const loadImages = async () => {
       try {
-        const loadStatus = await preloadImages(productImages);
+        // Sanitize all URLs before preloading
+        const sanitizedImages = productImages.map(img => sanitizeUrl(img));
+        
+        const loadStatus = await preloadImages(sanitizedImages);
         if (isMounted.current) {
           setImagesLoaded(loadStatus);
           

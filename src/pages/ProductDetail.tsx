@@ -9,6 +9,24 @@ const ProductDetail = () => {
     // Ensure we scroll to top when the component mounts
     window.scrollTo(0, 0);
     
+    // Set up global handler for Samsung image errors
+    const handleImageErrors = () => {
+      window.addEventListener('error', (event) => {
+        // Check if the error is from an image
+        if (event.target instanceof HTMLImageElement) {
+          const img = event.target;
+          console.log(`Global image error handler: ${img.src}`);
+          
+          // Only prevent default for Samsung URLs to avoid showing the browser's error UI
+          if (img.src.includes('samsung.com')) {
+            event.preventDefault();
+          }
+        }
+      }, true);
+    };
+    
+    handleImageErrors();
+    
     // Print the current route for debugging
     console.log("Product Detail Page mounted, current path:", window.location.pathname);
   }, []);

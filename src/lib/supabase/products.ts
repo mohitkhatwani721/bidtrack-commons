@@ -4,6 +4,20 @@ import { supabase } from "./client";
 import type { Product } from "@/lib/types";
 import { getRelevantPlaceholder } from "@/utils/imageUtils";
 
+// Better handling for Samsung URLs
+const sanitizeSamsungUrl = (url: string): string => {
+  if (!url) return url;
+  
+  if (url.includes('samsung.com')) {
+    // Samsung URLs often break with query parameters
+    const cleanUrl = url.split('?')[0];
+    console.log(`Sanitized Samsung URL: ${url} -> ${cleanUrl}`);
+    return cleanUrl;
+  }
+  
+  return url;
+};
+
 // Get all products from Supabase
 export const getAllProducts = async (): Promise<Product[]> => {
   try {
@@ -20,11 +34,8 @@ export const getAllProducts = async (): Promise<Product[]> => {
       // Fix Samsung image URLs and use placeholder if needed
       let imageUrl = item.image_url;
       
-      // Handle Samsung image URLs specifically
-      if (imageUrl && imageUrl.includes('samsung.com')) {
-        // Remove problematic parameters from Samsung URLs
-        imageUrl = imageUrl.split('?')[0];
-      }
+      // Sanitize Samsung URLs
+      imageUrl = sanitizeSamsungUrl(imageUrl);
       
       // Use placeholder if no image or as fallback
       if (!imageUrl) {
@@ -74,15 +85,9 @@ export const getProductById = async (id: string): Promise<Product | null> => {
     
     console.log("Raw product data from Supabase:", data);
     
-    // Fix Samsung image URLs specifically
-    let imageUrl = data.image_url;
-    console.log("Original image URL:", imageUrl);
-    
-    if (imageUrl && imageUrl.includes('samsung.com')) {
-      // Remove problematic parameters from Samsung URLs
-      imageUrl = imageUrl.split('?')[0];
-      console.log("Sanitized Samsung URL:", imageUrl);
-    }
+    // Sanitize Samsung image URL
+    let imageUrl = sanitizeSamsungUrl(data.image_url);
+    console.log("Processed image URL:", imageUrl);
     
     // Use placeholder if no image or as fallback
     if (!imageUrl) {
