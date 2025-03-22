@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import ImageUploader from "@/components/shared/ImageUploader";
@@ -16,6 +16,32 @@ const ImageUploadDemo = () => {
   const [uploadedImageInfo, setUploadedImageInfo] = useState<{publicId: string, url: string} | null>(null);
   const [selectedProductId, setSelectedProductId] = useState<string>("");
   const [configStatus, setConfigStatus] = useState<"valid" | "invalid" | "incomplete">("valid");
+  
+  // Check Cloudinary configuration on mount
+  useEffect(() => {
+    console.log("ImageUploadDemo mounted");
+    console.log("Cloudinary config:", {
+      cloudName: CLOUDINARY_CLOUD_NAME,
+      apiKey: CLOUDINARY_API_KEY,
+      uploadPreset: CLOUDINARY_UPLOAD_PRESET
+    });
+    
+    // Validate configuration
+    const hasCloudName = !!CLOUDINARY_CLOUD_NAME;
+    const hasApiKey = !!CLOUDINARY_API_KEY;
+    const hasUploadPreset = !!CLOUDINARY_UPLOAD_PRESET;
+    
+    if (hasCloudName && hasApiKey && hasUploadPreset) {
+      setConfigStatus("valid");
+      console.log("Cloudinary configuration is valid");
+    } else if (hasCloudName && hasApiKey) {
+      setConfigStatus("incomplete");
+      console.warn("Cloudinary configuration is incomplete - missing upload preset");
+    } else {
+      setConfigStatus("invalid");
+      console.error("Missing critical Cloudinary configuration");
+    }
+  }, []);
   
   // Fetch products for the dropdown
   const { data: products, isLoading } = useQuery({

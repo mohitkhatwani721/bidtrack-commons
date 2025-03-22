@@ -45,6 +45,7 @@ export const buildCloudinaryUrl = (
  */
 export const uploadToCloudinary = async (file: File, productId?: string): Promise<string | null> => {
   try {
+    // Debug logs to help diagnose issues
     console.log(`Starting upload to Cloudinary with preset: ${CLOUDINARY_UPLOAD_PRESET}`);
     console.log(`Using cloud name: ${CLOUDINARY_CLOUD_NAME}`);
     
