@@ -1,12 +1,12 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { ArrowRight, Lock } from "lucide-react";
 import { useBidForm } from "@/hooks/useBidForm";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, User } from "@/lib/auth";
 import AccountForm from "@/components/auth/AccountForm";
 
 interface BidFormProps {
@@ -16,7 +16,7 @@ interface BidFormProps {
 
 const BidForm = ({ productId, startingPrice }: BidFormProps) => {
   const [showAuthForm, setShowAuthForm] = useState(false);
-  const currentUser = getCurrentUser();
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   
   const {
     email,
@@ -32,9 +32,22 @@ const BidForm = ({ productId, startingPrice }: BidFormProps) => {
     initialEmail: currentUser?.email || "" 
   });
   
-  const handleAuthSuccess = () => {
+  useEffect(() => {
+    const loadUser = async () => {
+      const user = await getCurrentUser();
+      setCurrentUser(user);
+      if (user) {
+        setEmail(user.email);
+      }
+    };
+    
+    loadUser();
+  }, [setEmail]);
+  
+  const handleAuthSuccess = async () => {
     setShowAuthForm(false);
-    const user = getCurrentUser();
+    const user = await getCurrentUser();
+    setCurrentUser(user);
     if (user) {
       setEmail(user.email);
     }

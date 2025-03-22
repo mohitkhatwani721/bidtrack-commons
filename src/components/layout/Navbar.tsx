@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { GavelIcon, HomeIcon, PackageIcon, UserIcon, TimerIcon, LogOutIcon } from "lucide-react";
-import { getCurrentUser, logout } from "@/lib/auth";
+import { getCurrentUser, logout, User } from "@/lib/auth";
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -17,7 +17,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 const Navbar = () => {
   const [scrolled, setScrolled] = useState(false);
-  const currentUser = getCurrentUser();
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -28,13 +28,23 @@ const Navbar = () => {
     };
 
     window.addEventListener("scroll", handleScroll);
+    
+    // Load the current user
+    const loadUser = async () => {
+      const user = await getCurrentUser();
+      setCurrentUser(user);
+    };
+    
+    loadUser();
+    
     return () => {
       window.removeEventListener("scroll", handleScroll);
     };
   }, [scrolled]);
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
+    setCurrentUser(null);
     window.location.href = "/"; // Redirect to homepage after logout
   };
 

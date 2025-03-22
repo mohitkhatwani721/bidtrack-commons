@@ -1,7 +1,7 @@
 
 import { useEffect, useState } from "react";
 import { Bid } from "@/lib/types";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, User } from "@/lib/auth";
 import BidLoginPrompt from "./BidLoginPrompt";
 import BidList from "./BidList";
 import { getBidsForProduct } from "@/lib/supabase";
@@ -15,8 +15,17 @@ const BidHistory = ({ productId }: BidHistoryProps) => {
   const [productBids, setProductBids] = useState<Bid[]>([]);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   
-  const currentUser = getCurrentUser();
+  // Fetch the current user when component mounts
+  useEffect(() => {
+    const loadUser = async () => {
+      const user = await getCurrentUser();
+      setCurrentUser(user);
+    };
+    
+    loadUser();
+  }, []);
   
   // Fetch bids from Supabase
   const fetchBids = async () => {
@@ -54,7 +63,9 @@ const BidHistory = ({ productId }: BidHistoryProps) => {
     setIsAdmin(false);
   };
   
-  const handleAuthSuccess = () => {
+  const handleAuthSuccess = async () => {
+    const user = await getCurrentUser();
+    setCurrentUser(user);
     // This will trigger the useEffect to fetch bids based on the now logged-in user
     fetchBids();
   };

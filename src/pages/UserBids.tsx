@@ -7,12 +7,12 @@ import Footer from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { getUserBids } from "@/lib/supabase";
-import { Bid, Product } from "@/lib/types";
+import { Bid } from "@/lib/types";
 import { ArrowRight, PackageOpen } from "lucide-react";
 import AuctionTimer from "@/components/ui/AuctionTimer";
 import { getRelevantPlaceholder } from "@/utils/imageUtils";
 import AccountForm from "@/components/auth/AccountForm";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, User } from "@/lib/auth";
 
 const UserBids = () => {
   const [userBids, setUserBids] = useState<Bid[]>([]);
@@ -21,19 +21,26 @@ const UserBids = () => {
   const [showAuthForm, setShowAuthForm] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUserEmail, setCurrentUserEmail] = useState("");
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
 
   useEffect(() => {
     window.scrollTo(0, 0);
     
     // Check if user is already logged in
-    const user = getCurrentUser();
-    if (user) {
-      setCurrentUserEmail(user.email);
-      setIsLoggedIn(true);
+    const loadUser = async () => {
+      const user = await getCurrentUser();
+      setCurrentUser(user);
       
-      // Automatically load user bids when logged in
-      fetchUserBids(user.email);
-    }
+      if (user) {
+        setCurrentUserEmail(user.email);
+        setIsLoggedIn(true);
+        
+        // Automatically load user bids when logged in
+        fetchUserBids(user.email);
+      }
+    };
+    
+    loadUser();
   }, []);
 
   const fetchUserBids = async (email: string) => {
@@ -52,9 +59,11 @@ const UserBids = () => {
     }
   };
   
-  const handleAuthSuccess = () => {
+  const handleAuthSuccess = async () => {
     setShowAuthForm(false);
-    const user = getCurrentUser();
+    const user = await getCurrentUser();
+    setCurrentUser(user);
+    
     if (user) {
       setCurrentUserEmail(user.email);
       setIsLoggedIn(true);
