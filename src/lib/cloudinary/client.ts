@@ -51,9 +51,8 @@ export const uploadToCloudinary = async (file: File, productId?: string): Promis
     const formData = new FormData();
     formData.append('file', file);
     
-    // For signed uploads, we need to append the upload preset
+    // For unsigned uploads using upload preset
     formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
-    formData.append('api_key', CLOUDINARY_API_KEY);
     
     // Set the folder to asset/bid as specified in your preset settings
     formData.append('folder', 'asset/bid');
@@ -65,10 +64,6 @@ export const uploadToCloudinary = async (file: File, productId?: string): Promis
       formData.append('public_id', uniqueFilename);
       console.log(`Associating image with product ID: ${productId}`);
     }
-
-    // Generate a timestamp for the signature
-    const timestamp = Math.round((new Date()).getTime() / 1000);
-    formData.append('timestamp', timestamp.toString());
 
     const uploadUrl = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`;
     console.log(`Uploading to: ${uploadUrl}`);

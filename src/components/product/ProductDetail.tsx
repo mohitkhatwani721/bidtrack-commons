@@ -4,7 +4,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Product } from "@/lib/types";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, ImagePlus } from "lucide-react";
 import ProductImageGallery from "./ProductImageGallery";
 import ProductHeader from "./ProductHeader";
 import ProductStats from "./ProductStats";
@@ -14,6 +14,8 @@ import { getProductById } from "@/lib/supabase";
 import ProductDetailSkeleton from "@/components/ui/loading/ProductDetailSkeleton";
 import { toast } from "sonner";
 import { products } from "@/lib/data"; // Fallback to local data if Supabase fails
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import ImageUploader from "@/components/shared/ImageUploader";
 
 const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -21,6 +23,7 @@ const ProductDetail = () => {
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -63,6 +66,22 @@ const ProductDetail = () => {
     fetchProduct();
   }, [id]);
 
+  const handleImageUploaded = (publicId: string, url: string) => {
+    // Close the dialog
+    setIsUploadDialogOpen(false);
+    
+    // Update the product in local state to show the new image immediately
+    if (product) {
+      setProduct({
+        ...product,
+        imageUrl: url
+      });
+    }
+    
+    // Notify the user
+    toast.success("Product image updated successfully");
+  };
+
   return (
     <div className="container mx-auto px-4 py-16 mt-8">
       <Button 
@@ -91,7 +110,30 @@ const ProductDetail = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-          <ProductImageGallery product={product} />
+          <div>
+            <ProductImageGallery product={product} />
+            
+            <div className="mt-4 flex justify-end">
+              <Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <ImagePlus className="h-4 w-4 mr-2" />
+                    Update Product Image
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[425px]">
+                  <DialogHeader>
+                    <DialogTitle>Update Product Image</DialogTitle>
+                  </DialogHeader>
+                  <ImageUploader 
+                    productId={product.id} 
+                    onImageUploaded={handleImageUploaded}
+                    buttonText="Upload New Image"
+                  />
+                </DialogContent>
+              </Dialog>
+            </div>
+          </div>
           
           <motion.div 
             className="space-y-6"

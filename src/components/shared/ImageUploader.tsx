@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { uploadToCloudinary, buildCloudinaryUrl, CLOUDINARY_UPLOAD_PRESET, CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY } from "@/lib/cloudinary/client";
+import { uploadToCloudinary, buildCloudinaryUrl, CLOUDINARY_UPLOAD_PRESET, CLOUDINARY_CLOUD_NAME } from "@/lib/cloudinary/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
@@ -186,7 +186,7 @@ const ImageUploader = ({
               Cloud name: <span className="font-mono">{CLOUDINARY_CLOUD_NAME}</span>
             </p>
             <p className="text-xs mt-1 text-center">
-              Mode: <span className="font-mono">Signed Upload</span>
+              Mode: <span className="font-mono">Unsigned Upload</span>
             </p>
           </div>
         </div>
