@@ -14,6 +14,7 @@ export const isSupabaseConfigured = () => {
     supabaseUrl === 'https://tkknfvvthafcajjnqksp.supabase.co' &&
     supabaseAnonKey.startsWith('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9')
   ) {
+    // These look like valid credentials but we need to check connection
     return true;
   }
   
@@ -22,22 +23,68 @@ export const isSupabaseConfigured = () => {
   return false;
 };
 
+// Check if Supabase connection has been established
+export const testSupabaseConnection = async () => {
+  try {
+    // Simple health check query
+    const { data, error } = await supabase.from('bids').select('count').limit(1);
+    
+    if (error) {
+      if (error.message.includes('does not exist')) {
+        toast.error('Supabase table "bids" does not exist. Please set up your database schema.');
+        console.error('Supabase table "bids" does not exist:', error);
+        return false;
+      } else {
+        throw error;
+      }
+    }
+    
+    // If we get here, connection is working
+    return true;
+  } catch (error: any) {
+    console.error('Supabase connection test failed:', error);
+    
+    if (error.message === 'Failed to fetch' || error.code === 'NETWORK_ERROR') {
+      toast.error('Cannot connect to Supabase. Please ensure you have connected your Supabase project and have internet connection.');
+    } else if (error.code === 'PGRST301') {
+      toast.error('Supabase schema missing. Please set up your database tables.');
+    } else {
+      toast.error(`Supabase connection error: ${error.message || 'Unknown error'}`);
+    }
+    
+    return false;
+  }
+};
+
 // Helper function to handle Supabase errors consistently
 const handleSupabaseError = (error: any, message: string) => {
   console.error(`${message}:`, error);
-  if (error.message === 'Failed to fetch') {
-    toast.error('Cannot connect to Supabase. Please check your internet connection or Supabase status.');
+  
+  if (error.message === 'Failed to fetch' || error.code === 'NETWORK_ERROR') {
+    toast.error('Cannot connect to Supabase. Please ensure you have connected your Supabase project and have internet connection.');
+  } else if (error.code === 'PGRST301') {
+    toast.error('Supabase schema missing. Please set up your database tables.');
   } else {
     toast.error(message);
   }
+  
   return [];
 };
 
-// Supabase functions for bids
+// Modified Supabase functions with better error handling
 export const getBidsForProduct = async (productId: string) => {
-  if (!isSupabaseConfigured()) return [];
+  if (!isSupabaseConfigured()) {
+    toast.error('Supabase is not configured. Please connect your Supabase project first.');
+    return [];
+  }
   
   try {
+    // Test connection first
+    const isConnected = await testSupabaseConnection();
+    if (!isConnected) {
+      return [];
+    }
+    
     const { data, error } = await supabase
       .from('bids')
       .select('*')
@@ -60,9 +107,18 @@ export const getBidsForProduct = async (productId: string) => {
 };
 
 export const getUserBids = async (userEmail: string) => {
-  if (!isSupabaseConfigured()) return [];
+  if (!isSupabaseConfigured()) {
+    toast.error('Supabase is not configured. Please connect your Supabase project first.');
+    return [];
+  }
   
   try {
+    // Test connection first
+    const isConnected = await testSupabaseConnection();
+    if (!isConnected) {
+      return [];
+    }
+    
     const { data, error } = await supabase
       .from('bids')
       .select('*, products(*)')
@@ -96,9 +152,18 @@ export const getUserBids = async (userEmail: string) => {
 };
 
 export const getHighestBidForProduct = async (productId: string) => {
-  if (!isSupabaseConfigured()) return null;
+  if (!isSupabaseConfigured()) {
+    toast.error('Supabase is not configured. Please connect your Supabase project first.');
+    return null;
+  }
   
   try {
+    // Test connection first
+    const isConnected = await testSupabaseConnection();
+    if (!isConnected) {
+      return null;
+    }
+    
     const { data, error } = await supabase
       .from('bids')
       .select('*')
@@ -123,9 +188,18 @@ export const getHighestBidForProduct = async (productId: string) => {
 };
 
 export const placeBidToSupabase = async (productId: string, userEmail: string, amount: number) => {
-  if (!isSupabaseConfigured()) return null;
+  if (!isSupabaseConfigured()) {
+    toast.error('Supabase is not configured. Please connect your Supabase project first.');
+    return null;
+  }
   
   try {
+    // Test connection first
+    const isConnected = await testSupabaseConnection();
+    if (!isConnected) {
+      return null;
+    }
+    
     // Check if user has already bid on this product
     const { data: existingBids, error: checkError } = await supabase
       .from('bids')
@@ -172,8 +246,10 @@ export const placeBidToSupabase = async (productId: string, userEmail: string, a
     console.error('Error placing bid:', error);
     
     if (typeof error === 'object' && error !== null && 'message' in error) {
-      if (error.message === 'Failed to fetch') {
-        toast.error('Cannot connect to Supabase. Please check your internet connection.');
+      if (error.message === 'Failed to fetch' || error.code === 'NETWORK_ERROR') {
+        toast.error('Cannot connect to Supabase. Please ensure you have connected your Supabase project and have internet connection.');
+      } else if (error.code === 'PGRST301') {
+        toast.error('Supabase schema missing. Please set up your database tables.');
       } else {
         toast.error('Failed to place bid: ' + (error.message || 'Unknown error'));
       }
