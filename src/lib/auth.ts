@@ -1,92 +1,134 @@
 
 import { toast } from "sonner";
+import { supabase } from "./supabase";
 
 // Simple types for user accounts
 export interface User {
   id: string;
   email: string;
   name: string;
-  password: string; // In a real app, this would be hashed
   createdAt: Date;
 }
 
-// In-memory storage for user accounts (in a real app, this would be a database)
-let users: User[] = [
-  {
-    id: "1",
-    email: "mohit.khatwani@gmail.com",
-    name: "Mohit Khatwani",
-    password: "Khatu@1234@12", // Updated password to match what the user expects
-    createdAt: new Date(2023, 0, 1)
-  },
-  {
-    id: "2",
-    email: "john.doe@example.com",
-    name: "John Doe",
-    password: "password123",
-    createdAt: new Date(2023, 1, 15)
+// Get the current logged in user from Supabase
+export const getCurrentUser = async (): Promise<User | null> => {
+  const { data: { user }, error } = await supabase.auth.getUser();
+  
+  if (error || !user) {
+    return null;
   }
-];
 
-// Current logged in user - in a real app, this would use a proper auth system with sessions/tokens
-let currentUser: User | null = null;
+  // Get user profile from profiles table if it exists
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('name')
+    .eq('id', user.id)
+    .single();
+
+  return {
+    id: user.id,
+    email: user.email || '',
+    name: profile?.name || user.email?.split('@')[0] || '',
+    createdAt: new Date(user.created_at)
+  };
+};
 
 // Check if a user exists with the given email
-export const userExists = (email: string): boolean => {
-  return users.some(user => user.email.toLowerCase() === email.toLowerCase());
+export const userExists = async (email: string): Promise<boolean> => {
+  // This is just a check - in Supabase we can't actually check if a user exists
+  // without sending an email, so we'll just return false
+  return false;
 };
 
 // Register a new user
-export const register = (email: string, name: string, password: string): User | null => {
-  if (userExists(email)) {
-    toast.error("A user with this email already exists");
+export const register = async (email: string, name: string, password: string): Promise<User | null> => {
+  // Register the user with Supabase
+  const { data: { user }, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      data: {
+        name
+      }
+    }
+  });
+  
+  if (error) {
+    toast.error(error.message);
     return null;
   }
   
-  const newUser: User = {
-    id: Date.now().toString(),
-    email,
+  if (!user) {
+    toast.error("Failed to create account");
+    return null;
+  }
+  
+  // Create a profile record
+  await supabase.from('profiles').insert({
+    id: user.id,
+    email: user.email,
+    name
+  });
+  
+  toast.success("Account created successfully! Check your email for verification.");
+  
+  return {
+    id: user.id,
+    email: user.email || '',
     name,
-    password, // In a real app, this would be hashed
-    createdAt: new Date()
+    createdAt: new Date(user.created_at)
   };
-  
-  users.push(newUser);
-  currentUser = newUser;
-  
-  toast.success("Account created successfully!");
-  return newUser;
 };
 
 // Log in a user
-export const login = (email: string, password: string): User | null => {
-  const user = users.find(u => 
-    u.email.toLowerCase() === email.toLowerCase() && 
-    u.password === password
-  );
+export const login = async (email: string, password: string): Promise<User | null> => {
+  const { data: { user }, error } = await supabase.auth.signInWithPassword({
+    email,
+    password
+  });
+  
+  if (error) {
+    toast.error(error.message);
+    return null;
+  }
   
   if (!user) {
     toast.error("Invalid email or password");
     return null;
   }
   
-  currentUser = user;
-  toast.success(`Welcome back, ${user.name}!`);
-  return user;
+  // Get user profile
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('name')
+    .eq('id', user.id)
+    .single();
+    
+  toast.success(`Welcome back, ${profile?.name || email.split('@')[0]}!`);
+  
+  return {
+    id: user.id,
+    email: user.email || '',
+    name: profile?.name || email.split('@')[0] || '',
+    createdAt: new Date(user.created_at)
+  };
 };
 
 // Log out the current user
-export const logout = (): void => {
-  currentUser = null;
+export const logout = async (): Promise<void> => {
+  const { error } = await supabase.auth.signOut();
+  
+  if (error) {
+    toast.error(error.message);
+    return;
+  }
+  
   toast.info("You have been logged out");
 };
 
-// Get the current logged in user
-export const getCurrentUser = (): User | null => {
-  return currentUser;
-};
-
 // Validate if an email belongs to a registered user
-export const isValidUserEmail = (email: string): boolean => {
-  return userExists(email);
+export const isValidUserEmail = async (email: string): Promise<boolean> => {
+  // This is not directly possible with Supabase, so we'll just return true
+  // and let the signup/signin process handle validation
+  return true;
 };

@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { getHighestBidForProduct, placeBidToSupabase } from "@/lib/supabase";
 import { getCurrentUser } from "@/lib/auth";
@@ -16,8 +16,20 @@ export function useBidForm({ productId, startingPrice, initialEmail = "" }: UseB
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [minBidAmount, setMinBidAmount] = useState(startingPrice);
   
+  // Load current user email
+  useEffect(() => {
+    const loadCurrentUser = async () => {
+      const user = await getCurrentUser();
+      if (user) {
+        setEmail(user.email);
+      }
+    };
+    
+    loadCurrentUser();
+  }, []);
+  
   // Get the highest bid when the component mounts
-  useState(() => {
+  useEffect(() => {
     const fetchHighestBid = async () => {
       const highestBid = await getHighestBidForProduct(productId);
       if (highestBid) {
@@ -26,7 +38,7 @@ export function useBidForm({ productId, startingPrice, initialEmail = "" }: UseB
     };
     
     fetchHighestBid();
-  });
+  }, [productId, startingPrice]);
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,7 +65,7 @@ export function useBidForm({ productId, startingPrice, initialEmail = "" }: UseB
     setIsSubmitting(true);
     
     // Get current user or use email from form
-    const currentUser = getCurrentUser();
+    const currentUser = await getCurrentUser();
     const userEmail = currentUser ? currentUser.email : email;
     
     // Place bid using Supabase

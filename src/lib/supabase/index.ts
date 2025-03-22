@@ -16,3 +16,11 @@ export {
   getHighestBidForProduct,
   placeBidToSupabase
 } from './bids';
+
+// Re-export profile related functions
+export {
+  getProfileById,
+  upsertProfile,
+  deleteProfile,
+  ensureProfilesTable
+} from './profiles';

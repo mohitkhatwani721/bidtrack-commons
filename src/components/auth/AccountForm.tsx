@@ -25,22 +25,22 @@ const AccountForm = ({ onSuccess }: AccountFormProps) => {
   const [registerPassword, setRegisterPassword] = useState("");
   const [isRegistering, setIsRegistering] = useState(false);
   
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoggingIn(true);
     
-    // Simulate API call delay
-    setTimeout(() => {
-      const user = login(loginEmail, loginPassword);
-      setIsLoggingIn(false);
+    try {
+      const user = await login(loginEmail, loginPassword);
       
       if (user && onSuccess) {
         onSuccess();
       }
-    }, 1000);
+    } finally {
+      setIsLoggingIn(false);
+    }
   };
   
-  const handleRegister = (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsRegistering(true);
     
@@ -51,15 +51,15 @@ const AccountForm = ({ onSuccess }: AccountFormProps) => {
       return;
     }
     
-    // Simulate API call delay
-    setTimeout(() => {
-      const user = register(registerEmail, registerName, registerPassword);
-      setIsRegistering(false);
+    try {
+      const user = await register(registerEmail, registerName, registerPassword);
       
       if (user && onSuccess) {
         onSuccess();
       }
-    }, 1000);
+    } finally {
+      setIsRegistering(false);
+    }
   };
   
   return (
