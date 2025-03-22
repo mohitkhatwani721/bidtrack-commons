@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -82,6 +83,7 @@ const ProductCard = ({ product, featured = false }: ProductCardProps) => {
             onError={(e) => {
               const target = e.target as HTMLImageElement;
               target.src = getCloudinaryUrl('sample', { width: 400, height: 400 });
+              console.log("Image error fallback triggered for:", product.name);
             }}
           />
           

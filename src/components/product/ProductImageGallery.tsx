@@ -57,6 +57,7 @@ const ProductImageGallery = ({ product }: ProductImageGalleryProps) => {
     setActiveImage(cloudinaryMainImage);
     // Reset error state for new product
     setImageErrors({});
+    console.log("Product changed, reset active image to:", cloudinaryMainImage);
   }, [product.id, cloudinaryMainImage]);
   
   // Improved error handling for image loading
@@ -161,9 +162,11 @@ const ProductImageGallery = ({ product }: ProductImageGalleryProps) => {
   useEffect(() => {
     const loadImages = async () => {
       try {
+        console.log("Preloading images:", productImages);
         const loadStatus = await preloadImages(productImages);
         if (isMounted.current) {
           setImagesLoaded(loadStatus);
+          console.log("Images load status:", loadStatus);
           
           // Check if main image loaded, if not switch to fallback
           if (loadStatus[activeImage] === false) {
@@ -237,7 +240,10 @@ const ProductImageGallery = ({ product }: ProductImageGalleryProps) => {
             opacity: imagesLoaded[activeImage] && !imageErrors[activeImage] ? 1 : 0 
           }}
           loading="eager" // Load main product image immediately
-          onError={() => handleImageError(activeImage)}
+          onError={() => {
+            console.log("Main image error, falling back to sample image");
+            handleImageError(activeImage);
+          }}
         />
         
         <div className="absolute top-4 left-4">
@@ -285,7 +291,10 @@ const ProductImageGallery = ({ product }: ProductImageGalleryProps) => {
                 opacity: imagesLoaded[image] && !imageErrors[image] ? 1 : 0 
               }}
               loading="lazy" // Lazy load thumbnails
-              onError={() => handleImageError(image)}
+              onError={() => {
+                console.log(`Thumbnail image ${i} error`);
+                handleImageError(image);
+              }}
             />
           </motion.div>
         ))}

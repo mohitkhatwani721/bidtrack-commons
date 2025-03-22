@@ -37,6 +37,8 @@ const ProductDetail = () => {
         setLoading(true);
         setError(null);
         
+        console.log("Fetching product with ID:", id);
+        
         // Try to fetch from Supabase first
         let fetchedProduct = await getProductById(id);
         
@@ -76,11 +78,29 @@ const ProductDetail = () => {
         ...product,
         imageUrl: url
       });
+      
+      // Notify the user
+      toast.success("Product image updated successfully");
     }
-    
-    // Notify the user
-    toast.success("Product image updated successfully");
   };
+
+  // If we're still loading, show a skeleton
+  if (loading) {
+    return <ProductDetailSkeleton />;
+  }
+
+  // If there was an error or product not found
+  if (error || !product) {
+    return (
+      <div className="text-center py-16">
+        <h2 className="text-2xl font-bold mb-4">{error || "Product Not Found"}</h2>
+        <p className="text-gray-600 mb-8">
+          {error || "The product you're looking for doesn't exist or has been removed."}
+        </p>
+        <Button onClick={() => navigate("/products")}>Browse Products</Button>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto px-4 py-16 mt-8">
@@ -94,60 +114,44 @@ const ProductDetail = () => {
         Back to products
       </Button>
       
-      {loading ? (
-        <ProductDetailSkeleton />
-      ) : error ? (
-        <div className="text-center py-16">
-          <h2 className="text-2xl font-bold mb-4">Error Loading Product</h2>
-          <p className="text-gray-600 mb-8">{error}</p>
-          <Button onClick={() => navigate(-1)}>Go Back</Button>
-        </div>
-      ) : !product ? (
-        <div className="text-center py-16">
-          <h2 className="text-2xl font-bold mb-4">Product Not Found</h2>
-          <p className="text-gray-600 mb-8">The product you're looking for doesn't exist or has been removed.</p>
-          <Button onClick={() => navigate(-1)}>Go Back</Button>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-          <div>
-            <ProductImageGallery product={product} />
-            
-            <div className="mt-4 flex justify-end">
-              <Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button variant="outline" size="sm">
-                    <ImagePlus className="h-4 w-4 mr-2" />
-                    Update Product Image
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-[425px]">
-                  <DialogHeader>
-                    <DialogTitle>Update Product Image</DialogTitle>
-                  </DialogHeader>
-                  <ImageUploader 
-                    productId={product.id} 
-                    onImageUploaded={handleImageUploaded}
-                    buttonText="Upload New Image"
-                  />
-                </DialogContent>
-              </Dialog>
-            </div>
-          </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+        <div>
+          <ProductImageGallery product={product} />
           
-          <motion.div 
-            className="space-y-6"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-          >
-            <ProductHeader product={product} />
-            <ProductStats product={product} />
-            <ProductBidSection product={product} />
-            <ProductTabs product={product} />
-          </motion.div>
+          <div className="mt-4 flex justify-end">
+            <Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <ImagePlus className="h-4 w-4 mr-2" />
+                  Update Product Image
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                  <DialogTitle>Update Product Image</DialogTitle>
+                </DialogHeader>
+                <ImageUploader 
+                  productId={product.id} 
+                  onImageUploaded={handleImageUploaded}
+                  buttonText="Upload New Image"
+                />
+              </DialogContent>
+            </Dialog>
+          </div>
         </div>
-      )}
+        
+        <motion.div 
+          className="space-y-6"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+        >
+          <ProductHeader product={product} />
+          <ProductStats product={product} />
+          <ProductBidSection product={product} />
+          <ProductTabs product={product} />
+        </motion.div>
+      </div>
     </div>
   );
 };

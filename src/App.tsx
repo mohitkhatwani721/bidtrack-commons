@@ -15,6 +15,17 @@ function App() {
   useEffect(() => {
     // Initialize all necessary tables when the app starts
     initializeTables();
+    
+    // Add a global error handler for navigation issues
+    const handleErrors = () => {
+      window.addEventListener('error', (event) => {
+        console.error('Global error caught:', event.error);
+      });
+    };
+    
+    handleErrors();
+    
+    console.log('App initialized');
   }, []);
 
   return (
@@ -28,6 +39,14 @@ function App() {
         <Route path="/admin" element={<Admin />} />
         <Route path="/upload" element={<ImageUploadDemo />} />
         <Route path="/404" element={<NotFound />} />
+        
+        {/* Redirect /product/:id (wrong path) to /products/:id (correct path) */}
+        <Route path="/product/:id" element={<Navigate to={(location) => {
+          const id = location.pathname.split('/').pop();
+          return `/products/${id}`;
+        }} replace />} />
+        
+        {/* Catch all other routes */}
         <Route path="*" element={<Navigate to="/404" replace />} />
       </Routes>
     </Router>
