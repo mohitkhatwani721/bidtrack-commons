@@ -1,10 +1,15 @@
+
 // Cloudinary configuration
 export const CLOUDINARY_CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || 'di8rdvt2y';
 export const CLOUDINARY_API_KEY = import.meta.env.VITE_CLOUDINARY_API_KEY || '293774813922618';
 export const CLOUDINARY_BASE_URL = `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload`;
 
-// Preset for unsigned uploads (create this in your Cloudinary dashboard)
+// Preset for uploads (create this in your Cloudinary dashboard)
 export const CLOUDINARY_UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || 'ml_default';
+
+// Add Cloudinary API Secret - this should NEVER be exposed in frontend code in production
+// For demo purposes, we're including it here, but in a real app this should be handled server-side
+export const CLOUDINARY_API_SECRET = import.meta.env.VITE_CLOUDINARY_API_SECRET;
 
 /**
  * Builds a Cloudinary URL with transformations
@@ -45,12 +50,16 @@ export const uploadToCloudinary = async (file: File, productId?: string): Promis
     const formData = new FormData();
     formData.append('file', file);
     formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+    formData.append('api_key', CLOUDINARY_API_KEY);
     
     // If we have a product ID, use it in the public_id to create an association
     if (productId) {
       // Create a folder structure based on product ID
       formData.append('public_id', `products/${productId}/${Date.now()}`);
       console.log(`Associating image with product ID: ${productId}`);
+    } else {
+      // Use the asset/bid folder as specified in your preset settings
+      formData.append('folder', 'asset/bid');
     }
 
     const uploadUrl = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`;

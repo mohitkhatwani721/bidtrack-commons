@@ -11,6 +11,8 @@ import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { getAllProducts } from "@/lib/supabase/products";
 import { Loader2 } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { InfoIcon } from "lucide-react";
 
 const ImageUploadDemo = () => {
   const [uploadedImageInfo, setUploadedImageInfo] = useState<{publicId: string, url: string} | null>(null);
@@ -41,6 +43,16 @@ const ImageUploadDemo = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
+              <Alert className="mb-4">
+                <InfoIcon className="h-4 w-4" />
+                <AlertTitle>Cloudinary Configuration</AlertTitle>
+                <AlertDescription>
+                  Using Cloudinary preset: <strong>ml_default</strong> (Signed mode)<br />
+                  Default folder: <strong>asset/bid</strong><br />
+                  Images will be stored with unique filenames.
+                </AlertDescription>
+              </Alert>
+              
               <div className="space-y-4">
                 <div>
                   <Label htmlFor="product-select">Select a product (optional)</Label>
