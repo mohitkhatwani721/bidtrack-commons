@@ -9,6 +9,13 @@ export {
   handleSupabaseError
 } from './utils';
 
+// Re-export product related functions
+export {
+  getAllProducts,
+  getProductById,
+  updateProductImage
+} from './products';
+
 // Re-export bid related functions
 export {
   getBidsForProduct,
@@ -24,12 +31,6 @@ export {
   deleteProfile,
   ensureProfilesTable
 } from './profiles';
-
-// Re-export product related functions
-export {
-  getAllProducts,
-  getProductById
-} from './products';
 
 // Re-export admin related functions
 export {
