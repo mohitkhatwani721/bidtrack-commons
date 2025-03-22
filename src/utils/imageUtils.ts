@@ -1,8 +1,7 @@
-
 import randomWords from 'random-words';
 
 // Cloudinary configuration
-const CLOUDINARY_CLOUD_NAME = 'demo'; // Replace with your cloud name
+const CLOUDINARY_CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'demo'; // Replace 'demo' with your cloud name
 const CLOUDINARY_BASE_URL = `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload`;
 
 /**
@@ -30,8 +29,8 @@ export const getCloudinaryUrl = (
   // Build transformation string
   const transformations = `w_${width},h_${height},q_${quality},c_${crop},f_${format}`;
   
-  // Return full URL (using the demo account for now)
-  return `${CLOUDINARY_BASE_URL}/${transformations}/sample`;
+  // Return full URL
+  return `${CLOUDINARY_BASE_URL}/${transformations}/${imagePath}`;
 };
 
 /**
@@ -41,10 +40,7 @@ export const getRelevantPlaceholder = (productName: string): string => {
   const keywords = productName.split(' ');
   const placeholderKeywords = keywords.length > 1 ? keywords.slice(0, 2) : keywords;
   
-  // Generate a unique ID for the placeholder image
-  const placeholderId = randomWords({ exactly: 3, maxLength: 5 }).join('-');
-  
-  // Using Cloudinary's sample images as fallbacks with text overlay
+  // Using Cloudinary's sample images as fallbacks
   return getCloudinaryUrl('sample', { 
     width: 400, 
     height: 300,
