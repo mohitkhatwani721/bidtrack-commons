@@ -5,17 +5,20 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Loader2, Upload, Image as ImageIcon } from "lucide-react";
+import { updateProductImage } from "@/lib/supabase/products";
 
 interface ImageUploaderProps {
   onImageUploaded?: (publicId: string, url: string) => void;
   buttonText?: string;
   className?: string;
+  productId?: string; // Add product ID prop
 }
 
 const ImageUploader = ({ 
   onImageUploaded, 
   buttonText = "Upload Image", 
-  className = "" 
+  className = "",
+  productId
 }: ImageUploaderProps) => {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
@@ -40,7 +43,8 @@ const ImageUploader = ({
     setIsUploading(true);
     
     try {
-      const publicId = await uploadToCloudinary(file);
+      // Pass the product ID with the upload if available
+      const publicId = await uploadToCloudinary(file, productId);
       
       if (!publicId) {
         throw new Error("Failed to upload image");
@@ -54,7 +58,14 @@ const ImageUploader = ({
       });
       
       setUploadedImage(imageUrl);
-      toast.success("Image uploaded successfully");
+      
+      // If we have a product ID, update the product with the new image URL
+      if (productId) {
+        await updateProductImage(productId, imageUrl);
+        toast.success("Product image updated successfully");
+      } else {
+        toast.success("Image uploaded successfully");
+      }
       
       // Notify parent component if callback is provided
       if (onImageUploaded) {

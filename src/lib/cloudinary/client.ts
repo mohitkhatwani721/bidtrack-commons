@@ -39,7 +39,7 @@ export const buildCloudinaryUrl = (
 /**
  * Uploads an image to Cloudinary (client-side)
  */
-export const uploadToCloudinary = async (file: File): Promise<string | null> => {
+export const uploadToCloudinary = async (file: File, productId?: string): Promise<string | null> => {
   try {
     console.log(`Starting upload to Cloudinary with preset: ${CLOUDINARY_UPLOAD_PRESET}`);
     
@@ -47,6 +47,13 @@ export const uploadToCloudinary = async (file: File): Promise<string | null> => 
     formData.append('file', file);
     formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
     formData.append('api_key', CLOUDINARY_API_KEY);
+
+    // If we have a product ID, use it in the public_id to create an association
+    if (productId) {
+      // Create a folder structure based on product ID
+      formData.append('public_id', `products/${productId}/${Date.now()}`);
+      console.log(`Associating image with product ID: ${productId}`);
+    }
 
     const uploadUrl = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`;
     console.log(`Uploading to: ${uploadUrl}`);

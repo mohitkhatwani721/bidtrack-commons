@@ -1,4 +1,3 @@
-
 import { toast } from "sonner";
 import { supabase } from "./client";
 import type { Product } from "@/lib/types";
@@ -119,5 +118,32 @@ export const getProductById = async (id: string): Promise<Product | null> => {
     console.error("Error fetching product:", error);
     toast.error("Failed to load product details");
     return null;
+  }
+};
+
+/**
+ * Updates a product's image URL in the database
+ */
+export const updateProductImage = async (productId: string, imageUrl: string): Promise<boolean> => {
+  try {
+    console.log(`Updating product ${productId} with image URL: ${imageUrl}`);
+    
+    const { data, error } = await supabase
+      .from('products')
+      .update({ image_url: imageUrl })
+      .eq('id', productId);
+    
+    if (error) {
+      console.error("Error updating product image:", error);
+      toast.error("Failed to associate image with product");
+      return false;
+    }
+    
+    console.log("Product image updated successfully:", data);
+    return true;
+  } catch (error) {
+    console.error("Error updating product image:", error);
+    toast.error("Failed to associate image with product");
+    return false;
   }
 };
