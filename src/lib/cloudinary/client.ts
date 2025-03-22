@@ -41,24 +41,33 @@ export const buildCloudinaryUrl = (
  */
 export const uploadToCloudinary = async (file: File): Promise<string | null> => {
   try {
+    console.log(`Starting upload to Cloudinary with preset: ${CLOUDINARY_UPLOAD_PRESET}`);
+    
     const formData = new FormData();
     formData.append('file', file);
     formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
     formData.append('api_key', CLOUDINARY_API_KEY);
 
-    const response = await fetch(
-      `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`,
-      {
-        method: 'POST',
-        body: formData,
-      }
-    );
+    const uploadUrl = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`;
+    console.log(`Uploading to: ${uploadUrl}`);
+    
+    const response = await fetch(uploadUrl, {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Upload failed with status ${response.status}: ${errorText}`);
+    }
 
     const data = await response.json();
-    if (data.secure_url) {
+    console.log('Upload successful:', data);
+    
+    if (data.public_id) {
       return data.public_id; // Return the public_id for use with buildCloudinaryUrl
     } else {
-      throw new Error('Upload failed');
+      throw new Error('Upload succeeded but no public_id was returned');
     }
   } catch (error) {
     console.error('Error uploading to Cloudinary:', error);

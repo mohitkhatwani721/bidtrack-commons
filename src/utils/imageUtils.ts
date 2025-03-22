@@ -4,7 +4,8 @@ import {
   CLOUDINARY_BASE_URL, 
   buildCloudinaryUrl, 
   isCloudinaryUrl as isCloudinaryUrlCheck,
-  fetchViaCloudinary
+  fetchViaCloudinary,
+  uploadToCloudinary as uploadToCloudinaryClient
 } from '@/lib/cloudinary/client';
 
 // Re-export Cloudinary utility functions
@@ -16,30 +17,13 @@ export const getCloudinaryUrl = buildCloudinaryUrl;
  * Note: This should only be used for small images as it's client-side
  */
 export const uploadToCloudinary = async (file: File): Promise<string | null> => {
-  if (!CLOUDINARY_CLOUD_NAME || CLOUDINARY_CLOUD_NAME === 'demo') {
+  if (!CLOUDINARY_CLOUD_NAME) {
     console.error('Cloudinary cloud name not configured');
     return null;
   }
 
   try {
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('upload_preset', 'ml_default'); // Use an unsigned upload preset
-
-    const response = await fetch(
-      `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`,
-      {
-        method: 'POST',
-        body: formData,
-      }
-    );
-
-    const data = await response.json();
-    if (data.secure_url) {
-      return data.public_id; // Return the public_id for use with getCloudinaryUrl
-    } else {
-      throw new Error('Upload failed');
-    }
+    return await uploadToCloudinaryClient(file);
   } catch (error) {
     console.error('Error uploading to Cloudinary:', error);
     return null;
