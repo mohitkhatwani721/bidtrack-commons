@@ -1,4 +1,3 @@
-
 import { createClient } from '@supabase/supabase-js';
 import { toast } from 'sonner';
 
@@ -10,10 +9,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 // Helper function to check if Supabase is properly configured
 export const isSupabaseConfigured = () => {
-  if (
-    !supabaseUrl || supabaseUrl === '' ||
-    !supabaseAnonKey || supabaseAnonKey === ''
-  ) {
+  if (!supabaseUrl || !supabaseAnonKey) {
     toast.error('Supabase is not configured properly. Please update your credentials in src/lib/supabase.ts');
     console.error('Supabase is not configured properly. Please update your credentials in src/lib/supabase.ts');
     return false;
