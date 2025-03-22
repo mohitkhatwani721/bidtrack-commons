@@ -80,7 +80,7 @@ const Navbar = () => {
         <nav className="hidden md:flex items-center space-x-8">
           <NavLink to="/" icon={<HomeIcon className="h-4 w-4" />} label="Home" />
           <NavLink to="/products" icon={<PackageIcon className="h-4 w-4" />} label="Products" />
-          <NavLink to="/my-bids" icon={<UserIcon className="h-4 w-4" />} label="My Bids" />
+          <NavLink to="/bids" icon={<UserIcon className="h-4 w-4" />} label="My Bids" />
           <NavLink to="/admin" icon={<TimerIcon className="h-4 w-4" />} label="Admin" />
           
           {currentUser ? (

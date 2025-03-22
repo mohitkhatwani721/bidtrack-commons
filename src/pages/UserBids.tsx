@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
@@ -232,7 +231,7 @@ const UserBids = () => {
                                 </div>
                                 
                                 <Button asChild variant="outline" size="sm" className="mt-2">
-                                  <Link to={`/product/${bid.productId}`}>
+                                  <Link to={`/products/${bid.productId}`}>
                                     View Product
                                     <ArrowRight className="ml-2 h-3 w-3" />
                                   </Link>
