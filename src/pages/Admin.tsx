@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import Navbar from "@/components/layout/Navbar";
@@ -43,7 +42,7 @@ const Admin = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [allBids, setAllBids] = useState<Bid[]>([]);
-  const [showAllBids, setShowAllBids] = useState(true); // Default to showing all bids
+  const [showAllBids, setShowAllBids] = useState(true);
   const [filter, setFilter] = useState("");
   const [winners, setWinners] = useState<Map<string, Bid>>(new Map());
   const [startDate, setStartDate] = useState<Date>(new Date());
@@ -63,19 +62,15 @@ const Admin = () => {
     
     setIsLoadingData(true);
     try {
-      // Load bids from Supabase
       const bids = await getAllBids();
       setAllBids(bids);
       
-      // Load products from Supabase
       const productList = await getAllProducts();
       setAllProducts(productList);
       
-      // Get winners map
       const winnersMap = await getWinners();
       setWinners(winnersMap);
       
-      // Load auction settings
       const settings = await getAuctionSettings();
       if (settings) {
         setStartDate(settings.startDate);
@@ -109,7 +104,6 @@ const Admin = () => {
     e.preventDefault();
     setIsLoading(true);
     
-    // Simple authentication (in a real app, use proper authentication)
     setTimeout(() => {
       if (password === "admin123") {
         setIsAuthenticated(true);
@@ -127,9 +121,6 @@ const Admin = () => {
 
   const handleExportToExcel = () => {
     toast.success("Results exported successfully!");
-    
-    // Updated Excel export logic to include winner tag
-    console.log("Exporting results to Excel with winner tag...");
     
     const csvContent = "data:text/csv;charset=utf-8," 
       + "Product ID,Product Name,Model Code,Zone,Price Per Unit,Winning Bid Amount,Bidder Email,Is Winner\n"
@@ -150,13 +141,11 @@ const Admin = () => {
   };
 
   const initiateUpdateDates = () => {
-    // Check if dates are valid before showing confirmation dialog
     if (dateError) {
       toast.error(dateError);
       return;
     }
     
-    // Show confirmation dialog
     setShowConfirmDialog(true);
   };
 
@@ -164,17 +153,14 @@ const Admin = () => {
     setIsUpdatingDates(true);
     
     try {
-      // Update the auction dates in Supabase
       const success = await updateAuctionSettings(startDate, endDate);
       
       if (success) {
-        // Show success message
         toast.success("Auction dates updated successfully!");
       } else {
         toast.error("Failed to update auction dates");
       }
       
-      // Close the dialog
       setShowConfirmDialog(false);
     } catch (error) {
       if (error instanceof Error) {
@@ -187,12 +173,10 @@ const Admin = () => {
     }
   };
 
-  // Filter bids by email if filter is provided
   const filteredBids = filter
     ? allBids.filter(bid => bid.userEmail.toLowerCase().includes(filter.toLowerCase()))
     : allBids;
 
-  // Filter to only show winning bids if showAllBids is false
   const displayBids = showAllBids 
     ? filteredBids 
     : filteredBids.filter(async bid => await isWinningBid(bid));
@@ -368,7 +352,6 @@ const Admin = () => {
                       </Button>
                     </div>
                     
-                    {/* Confirmation Dialog */}
                     <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
                       <AlertDialogContent>
                         <AlertDialogHeader>
@@ -482,7 +465,6 @@ const Admin = () => {
                               const product = getProductById(bid.productId);
                               if (!product) return null;
                               
-                              // Determine if this is the winning bid
                               const isWinner = winners.get(bid.productId)?.id === bid.id;
                               
                               return (
@@ -490,7 +472,7 @@ const Admin = () => {
                                   <TableCell className="font-medium">{product.name}</TableCell>
                                   <TableCell>{product.zone || 'N/A'}</TableCell>
                                   <TableCell>{product.modelCode}</TableCell>
-                                  <TableCell>AED {product.pricePerUnit?.toLocaleString() || product.startingPrice?.toLocaleString()}</TableCell>
+                                  <TableCell>AED {product.pricePerUnit?.toLocaleString()}</TableCell>
                                   <TableCell>AED {bid.amount.toLocaleString()}</TableCell>
                                   <TableCell className="font-medium">{bid.userEmail}</TableCell>
                                   <TableCell>{bid.timestamp.toLocaleString()}</TableCell>
