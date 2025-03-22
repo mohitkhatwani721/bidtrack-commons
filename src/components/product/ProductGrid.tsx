@@ -23,7 +23,8 @@ const ProductGrid = ({ initialProducts }: ProductGridProps) => {
   const [loading, setLoading] = useState(!initialProducts);
   const [mounted, setMounted] = useState(false);
 
-  const zones = ["all", ...new Set(products.map(product => product.zone))];
+  // Make sure we have a valid "all" zone if zones array is empty
+  const zones = ["all", ...new Set(products.map(product => product.zone || "unknown"))];
 
   useEffect(() => {
     setMounted(true);
@@ -54,7 +55,7 @@ const ProductGrid = ({ initialProducts }: ProductGridProps) => {
         product => 
           product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
           product.modelCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          product.zone.toLowerCase().includes(searchTerm.toLowerCase())
+          (product.zone && product.zone.toLowerCase().includes(searchTerm.toLowerCase()))
       );
     }
     
@@ -96,8 +97,8 @@ const ProductGrid = ({ initialProducts }: ProductGridProps) => {
           </SelectTrigger>
           <SelectContent>
             {zones.map(zone => (
-              <SelectItem key={zone} value={zone}>
-                {zone === "all" ? "All Zones" : zone}
+              <SelectItem key={zone} value={zone || "unknown"}>
+                {zone === "all" ? "All Zones" : (zone || "Unknown")}
               </SelectItem>
             ))}
           </SelectContent>
