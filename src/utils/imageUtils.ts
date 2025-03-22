@@ -1,44 +1,15 @@
 import randomWords from 'random-words';
+import { 
+  CLOUDINARY_CLOUD_NAME, 
+  CLOUDINARY_BASE_URL, 
+  buildCloudinaryUrl, 
+  isCloudinaryUrl as isCloudinaryUrlCheck,
+  fetchViaCloudinary
+} from '@/lib/cloudinary/client';
 
-// Cloudinary configuration
-const CLOUDINARY_CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'demo'; // Replace 'demo' with your cloud name
-const CLOUDINARY_BASE_URL = `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload`;
-
-/**
- * Generates a Cloudinary URL with transformations
- */
-export const getCloudinaryUrl = (
-  imagePath: string,
-  options: {
-    width?: number;
-    height?: number;
-    quality?: number;
-    crop?: string;
-    format?: string;
-  } = {}
-): string => {
-  // Default options
-  const {
-    width = 400,
-    height = 300,
-    quality = 80,
-    crop = 'fill',
-    format = 'auto'
-  } = options;
-
-  // Build transformation string
-  const transformations = `w_${width},h_${height},q_${quality},c_${crop},f_${format}`;
-  
-  // Return full URL
-  return `${CLOUDINARY_BASE_URL}/${transformations}/${imagePath}`;
-};
-
-/**
- * Checks if a URL is already a Cloudinary URL
- */
-export const isCloudinaryUrl = (url: string): boolean => {
-  return url && url.includes('cloudinary.com');
-};
+// Re-export Cloudinary utility functions
+export const isCloudinaryUrl = isCloudinaryUrlCheck;
+export const getCloudinaryUrl = buildCloudinaryUrl;
 
 /**
  * Uploads an image to Cloudinary (client-side)
@@ -79,9 +50,6 @@ export const uploadToCloudinary = async (file: File): Promise<string | null> => 
  * Generates a relevant placeholder image URL based on the product name.
  */
 export const getRelevantPlaceholder = (productName: string): string => {
-  const keywords = productName.split(' ');
-  const placeholderKeywords = keywords.length > 1 ? keywords.slice(0, 2) : keywords;
-  
   // Using Cloudinary's sample images as fallbacks
   return getCloudinaryUrl('sample', { 
     width: 400, 
@@ -287,20 +255,5 @@ export const convertToCloudinary = (url: string, options: {
     return url;
   }
 
-  // Skip if URL is invalid or empty
-  if (!url) return url;
-
-  try {
-    // For external images, we can use Cloudinary's fetch capability
-    // This allows Cloudinary to retrieve and optimize external images
-    const fetchUrl = encodeURIComponent(url);
-    
-    const { width = 600, height = 400, quality = 80 } = options;
-    const transformations = `w_${width},h_${height},q_${quality},c_fill,f_auto`;
-    
-    return `${CLOUDINARY_BASE_URL}/${transformations}/fetch/${fetchUrl}`;
-  } catch (error) {
-    console.error("Error converting to Cloudinary URL:", error);
-    return url; // Fall back to the original URL
-  }
+  return fetchViaCloudinary(url, options);
 };

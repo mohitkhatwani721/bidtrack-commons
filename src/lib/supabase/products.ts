@@ -29,11 +29,14 @@ export const getAllProducts = async (): Promise<Product[]> => {
       if (!imageUrl) {
         imageUrl = getRelevantPlaceholder(item.name);
       } 
-      // Convert non-Cloudinary images to Cloudinary
+      // Convert non-Cloudinary images to Cloudinary for optimization
       else if (!isCloudinaryUrl(imageUrl)) {
-        // Don't actually convert here - we'll do that in the components
-        // just ensure we have a valid URL
-        console.log(`Product ${item.name} using original image: ${imageUrl}`);
+        imageUrl = convertToCloudinary(imageUrl, {
+          width: 600,
+          height: 600,
+          quality: 80
+        });
+        console.log(`Product ${item.name} optimized with Cloudinary: ${imageUrl}`);
       }
       
       return {
@@ -87,6 +90,15 @@ export const getProductById = async (id: string): Promise<Product | null> => {
     if (!imageUrl) {
       imageUrl = getRelevantPlaceholder(data.name);
       console.log("Using placeholder image:", imageUrl);
+    } 
+    // Optimize external images with Cloudinary
+    else if (!isCloudinaryUrl(imageUrl)) {
+      imageUrl = convertToCloudinary(imageUrl, {
+        width: 800,
+        height: 800,
+        quality: 90
+      });
+      console.log("Using Cloudinary optimized image:", imageUrl);
     }
     
     const product = {
