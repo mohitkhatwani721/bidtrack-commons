@@ -6,7 +6,6 @@ import Footer from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { products, bids, getWinningBids, isAuctionActive, auctionSettings, isWinningBid, getWinners, getHighestBidForProduct, updateAuctionDates } from "@/lib/data";
 import { Bid, Product } from "@/lib/types";
 import { toast } from "sonner";
 import AuctionTimer from "@/components/ui/AuctionTimer";
@@ -34,6 +33,10 @@ import {
 } from "@/components/ui/alert-dialog";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { products } from "@/lib/data";
+import { getAllBids, getAuctionSettings, updateAuctionSettings, getWinners, isWinningBid } from "@/lib/supabase/admin";
+import Spinner from "@/components/ui/loading/Spinner";
+import { getAllProducts } from "@/lib/supabase";
 
 const Admin = () => {
   const [password, setPassword] = useState("");
@@ -43,23 +46,52 @@ const Admin = () => {
   const [showAllBids, setShowAllBids] = useState(true); // Default to showing all bids
   const [filter, setFilter] = useState("");
   const [winners, setWinners] = useState<Map<string, Bid>>(new Map());
-  const [startDate, setStartDate] = useState<Date>(auctionSettings.startDate);
-  const [endDate, setEndDate] = useState<Date>(auctionSettings.endDate);
+  const [startDate, setStartDate] = useState<Date>(new Date());
+  const [endDate, setEndDate] = useState<Date>(new Date());
   const [isUpdatingDates, setIsUpdatingDates] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [dateError, setDateError] = useState<string | null>(null);
+  const [isLoadingData, setIsLoadingData] = useState(false);
+  const [allProducts, setAllProducts] = useState<Product[]>([]);
 
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
 
+  const loadData = async () => {
+    if (!isAuthenticated) return;
+    
+    setIsLoadingData(true);
+    try {
+      // Load bids from Supabase
+      const bids = await getAllBids();
+      setAllBids(bids);
+      
+      // Load products from Supabase
+      const productList = await getAllProducts();
+      setAllProducts(productList);
+      
+      // Get winners map
+      const winnersMap = await getWinners();
+      setWinners(winnersMap);
+      
+      // Load auction settings
+      const settings = await getAuctionSettings();
+      if (settings) {
+        setStartDate(settings.startDate);
+        setEndDate(settings.endDate);
+      }
+    } catch (error) {
+      console.error('Error loading data:', error);
+      toast.error('Failed to load auction data');
+    } finally {
+      setIsLoadingData(false);
+    }
+  };
+
   useEffect(() => {
     if (isAuthenticated) {
-      // Load all bids sorted by timestamp (newest first) instead of just winning bids
-      setAllBids([...bids].sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime()));
-      setWinners(getWinners());
-      setStartDate(auctionSettings.startDate);
-      setEndDate(auctionSettings.endDate);
+      loadData();
     }
   }, [isAuthenticated]);
 
@@ -90,7 +122,7 @@ const Admin = () => {
   };
 
   const getProductById = (productId: string): Product | undefined => {
-    return products.find(product => product.id === productId);
+    return allProducts.find(product => product.id === productId);
   };
 
   const handleExportToExcel = () => {
@@ -101,9 +133,9 @@ const Admin = () => {
     
     const csvContent = "data:text/csv;charset=utf-8," 
       + "Product ID,Product Name,Model Code,Zone,Price Per Unit,Winning Bid Amount,Bidder Email,Is Winner\n"
-      + allBids.map(bid => {
+      + allBids.map(async (bid) => {
           const product = getProductById(bid.productId);
-          const isWinner = isWinningBid(bid);
+          const isWinner = await isWinningBid(bid);
           return product 
             ? `${product.id},${product.name},${product.modelCode},${product.zone},${product.pricePerUnit},${bid.amount},${bid.userEmail},${isWinner ? "Yes" : "No"}`
             : "";
@@ -128,29 +160,31 @@ const Admin = () => {
     setShowConfirmDialog(true);
   };
 
-  const confirmUpdateDates = () => {
+  const confirmUpdateDates = async () => {
     setIsUpdatingDates(true);
     
-    setTimeout(() => {
-      try {
-        // Update the auction dates
-        updateAuctionDates(startDate, endDate);
-        
+    try {
+      // Update the auction dates in Supabase
+      const success = await updateAuctionSettings(startDate, endDate);
+      
+      if (success) {
         // Show success message
         toast.success("Auction dates updated successfully!");
-        
-        // Close the dialog
-        setShowConfirmDialog(false);
-      } catch (error) {
-        if (error instanceof Error) {
-          toast.error(`Failed to update dates: ${error.message}`);
-        } else {
-          toast.error("Failed to update dates");
-        }
-      } finally {
-        setIsUpdatingDates(false);
+      } else {
+        toast.error("Failed to update auction dates");
       }
-    }, 1000);
+      
+      // Close the dialog
+      setShowConfirmDialog(false);
+    } catch (error) {
+      if (error instanceof Error) {
+        toast.error(`Failed to update dates: ${error.message}`);
+      } else {
+        toast.error("Failed to update dates");
+      }
+    } finally {
+      setIsUpdatingDates(false);
+    }
   };
 
   // Filter bids by email if filter is provided
@@ -161,7 +195,7 @@ const Admin = () => {
   // Filter to only show winning bids if showAllBids is false
   const displayBids = showAllBids 
     ? filteredBids 
-    : filteredBids.filter(bid => isWinningBid(bid));
+    : filteredBids.filter(async bid => await isWinningBid(bid));
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -239,123 +273,89 @@ const Admin = () => {
                 transition={{ duration: 0.5 }}
                 className="space-y-6"
               >
-                <div className="bg-white rounded-lg border p-6">
-                  <div className="flex items-center space-x-4 mb-6">
-                    <div className="p-3 bg-blue-50 rounded-full">
-                      <Settings2Icon className="h-6 w-6 text-blue-500" />
-                    </div>
-                    <div>
-                      <h2 className="text-xl font-medium">Auction Settings</h2>
-                      <p className="text-gray-600">Update the auction start and end dates.</p>
-                    </div>
+                {isLoadingData ? (
+                  <div className="flex flex-col items-center justify-center p-12">
+                    <Spinner size="lg" />
+                    <p className="mt-4 text-gray-500">Loading auction data...</p>
                   </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Start Date</label>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            className={cn(
-                              "w-full justify-start text-left font-normal",
-                              !startDate && "text-muted-foreground"
-                            )}
-                          >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {startDate ? format(startDate, "PPP") : <span>Pick a date</span>}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={startDate}
-                            onSelect={(date) => date && setStartDate(date)}
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">End Date</label>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            className={cn(
-                              "w-full justify-start text-left font-normal",
-                              !endDate && "text-muted-foreground"
-                            )}
-                          >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {endDate ? format(endDate, "PPP") : <span>Pick a date</span>}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={endDate}
-                            onSelect={(date) => date && setEndDate(date)}
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
-                    </div>
-                  </div>
-                  
-                  {dateError && (
-                    <div className="mb-4 p-2 bg-red-50 border border-red-200 rounded-md flex items-start space-x-2">
-                      <AlertCircleIcon className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
-                      <span className="text-sm text-red-700">{dateError}</span>
-                    </div>
-                  )}
-                  
-                  <Button 
-                    onClick={initiateUpdateDates} 
-                    className="bg-blue-500 hover:bg-blue-600 text-white"
-                    disabled={!!dateError || isUpdatingDates}
-                  >
-                    {isUpdatingDates ? (
-                      <span className="flex items-center">
-                        Updating
-                        <span className="ml-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                      </span>
-                    ) : (
-                      "Update Auction Dates"
-                    )}
-                  </Button>
-                </div>
-                
-                {/* Confirmation Dialog */}
-                <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Confirm Date Changes</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        <p>Are you sure you want to update the auction dates?</p>
-                        <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
-                          <div className="space-y-1">
-                            <p className="font-medium">New Start Date:</p>
-                            <p className="text-gray-700">{startDate ? format(startDate, "PPP") : "Not set"}</p>
-                          </div>
-                          <div className="space-y-1">
-                            <p className="font-medium">New End Date:</p>
-                            <p className="text-gray-700">{endDate ? format(endDate, "PPP") : "Not set"}</p>
-                          </div>
+                ) : (
+                  <>
+                    <div className="bg-white rounded-lg border p-6">
+                      <div className="flex items-center space-x-4 mb-6">
+                        <div className="p-3 bg-blue-50 rounded-full">
+                          <Settings2Icon className="h-6 w-6 text-blue-500" />
                         </div>
-                        <p className="mt-4 text-amber-600 flex items-center">
-                          <AlertCircleIcon className="h-4 w-4 mr-2" />
-                          This action cannot be undone.
-                        </p>
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel disabled={isUpdatingDates}>Cancel</AlertDialogCancel>
-                      <AlertDialogAction
-                        onClick={confirmUpdateDates}
-                        disabled={isUpdatingDates}
-                        className="bg-blue-500 hover:bg-blue-600"
+                        <div>
+                          <h2 className="text-xl font-medium">Auction Settings</h2>
+                          <p className="text-gray-600">Update the auction start and end dates.</p>
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Start Date</label>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button
+                                variant="outline"
+                                className={cn(
+                                  "w-full justify-start text-left font-normal",
+                                  !startDate && "text-muted-foreground"
+                                )}
+                              >
+                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                {startDate ? format(startDate, "PPP") : <span>Pick a date</span>}
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                              <Calendar
+                                mode="single"
+                                selected={startDate}
+                                onSelect={(date) => date && setStartDate(date)}
+                                initialFocus
+                              />
+                            </PopoverContent>
+                          </Popover>
+                        </div>
+                        
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">End Date</label>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button
+                                variant="outline"
+                                className={cn(
+                                  "w-full justify-start text-left font-normal",
+                                  !endDate && "text-muted-foreground"
+                                )}
+                              >
+                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                {endDate ? format(endDate, "PPP") : <span>Pick a date</span>}
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                              <Calendar
+                                mode="single"
+                                selected={endDate}
+                                onSelect={(date) => date && setEndDate(date)}
+                                initialFocus
+                              />
+                            </PopoverContent>
+                          </Popover>
+                        </div>
+                      </div>
+                      
+                      {dateError && (
+                        <div className="mb-4 p-2 bg-red-50 border border-red-200 rounded-md flex items-start space-x-2">
+                          <AlertCircleIcon className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
+                          <span className="text-sm text-red-700">{dateError}</span>
+                        </div>
+                      )}
+                      
+                      <Button 
+                        onClick={initiateUpdateDates} 
+                        className="bg-blue-500 hover:bg-blue-600 text-white"
+                        disabled={!!dateError || isUpdatingDates}
                       >
                         {isUpdatingDates ? (
                           <span className="flex items-center">
@@ -363,173 +363,217 @@ const Admin = () => {
                             <span className="ml-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
                           </span>
                         ) : (
-                          <span className="flex items-center">
-                            <CheckCircleIcon className="mr-2 h-4 w-4" />
-                            Confirm Update
-                          </span>
+                          "Update Auction Dates"
                         )}
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-                
-                <div className="bg-white rounded-lg border p-6">
-                  <div className="flex items-center justify-between mb-6">
-                    <div>
-                      <h2 className="text-xl font-medium">Auction Results</h2>
-                      <p className="text-gray-600">
-                        {isAuctionActive() 
-                          ? "The auction is currently active. Final results will be available after it ends."
-                          : new Date() < auctionSettings.startDate
-                            ? "The auction has not started yet."
-                            : "The auction has ended. Here are the final results."}
-                      </p>
-                    </div>
-                    
-                    <Button 
-                      variant="outline" 
-                      className="flex items-center" 
-                      onClick={handleExportToExcel}
-                    >
-                      <DownloadIcon className="h-4 w-4 mr-2" />
-                      Export to Excel
-                    </Button>
-                  </div>
-                  
-                  <div className="mb-4 space-y-4">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-500">
-                        {bids.length} total bids, showing {displayBids.length} bids
-                      </span>
-                      
-                      <Button 
-                        variant="link" 
-                        onClick={() => setShowAllBids(!showAllBids)}
-                        className="text-sm"
-                      >
-                        {showAllBids ? "Show Only Winning Bids" : "Show All Bids"}
                       </Button>
                     </div>
                     
-                    <div>
-                      <Input
-                        type="text"
-                        placeholder="Filter by email (e.g., mohit.khatwani@gmail.com)"
-                        value={filter}
-                        onChange={(e) => setFilter(e.target.value)}
-                        className="w-full"
-                      />
-                    </div>
-                  </div>
-                  
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Product</TableHead>
-                          <TableHead>Zone</TableHead>
-                          <TableHead>Model Code</TableHead>
-                          <TableHead>Starting Price</TableHead>
-                          <TableHead>Bid Amount</TableHead>
-                          <TableHead>Bidder</TableHead>
-                          <TableHead>Time</TableHead>
-                          <TableHead>Status</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {displayBids.map((bid, index) => {
-                          const product = getProductById(bid.productId);
-                          if (!product) return null;
-                          
-                          const isWinner = isWinningBid(bid);
-                          
-                          return (
-                            <TableRow key={bid.id} className={isWinner ? "bg-green-50" : ""}>
-                              <TableCell className="font-medium">{product.name}</TableCell>
-                              <TableCell>{product.zone}</TableCell>
-                              <TableCell>{product.modelCode}</TableCell>
-                              <TableCell>AED {product.pricePerUnit.toLocaleString()}</TableCell>
-                              <TableCell>AED {bid.amount.toLocaleString()}</TableCell>
-                              <TableCell className="font-medium">{bid.userEmail}</TableCell>
-                              <TableCell>{bid.timestamp.toLocaleString()}</TableCell>
-                              <TableCell>
-                                {isWinner ? (
-                                  <Badge className="bg-green-500 flex items-center space-x-1">
-                                    <TrophyIcon className="h-3 w-3 mr-1" />
-                                    Winner
-                                  </Badge>
-                                ) : (
-                                  <Badge variant="outline" className="text-gray-500">
-                                    Outbid
-                                  </Badge>
-                                )}
-                              </TableCell>
-                            </TableRow>
-                          );
-                        })}
+                    {/* Confirmation Dialog */}
+                    <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Confirm Date Changes</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            <p>Are you sure you want to update the auction dates?</p>
+                            <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
+                              <div className="space-y-1">
+                                <p className="font-medium">New Start Date:</p>
+                                <p className="text-gray-700">{startDate ? format(startDate, "PPP") : "Not set"}</p>
+                              </div>
+                              <div className="space-y-1">
+                                <p className="font-medium">New End Date:</p>
+                                <p className="text-gray-700">{endDate ? format(endDate, "PPP") : "Not set"}</p>
+                              </div>
+                            </div>
+                            <p className="mt-4 text-amber-600 flex items-center">
+                              <AlertCircleIcon className="h-4 w-4 mr-2" />
+                              This action cannot be undone.
+                            </p>
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel disabled={isUpdatingDates}>Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={confirmUpdateDates}
+                            disabled={isUpdatingDates}
+                            className="bg-blue-500 hover:bg-blue-600"
+                          >
+                            {isUpdatingDates ? (
+                              <span className="flex items-center">
+                                Updating
+                                <span className="ml-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                              </span>
+                            ) : (
+                              <span className="flex items-center">
+                                <CheckCircleIcon className="mr-2 h-4 w-4" />
+                                Confirm Update
+                              </span>
+                            )}
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                    
+                    <div className="bg-white rounded-lg border p-6">
+                      <div className="flex items-center justify-between mb-6">
+                        <div>
+                          <h2 className="text-xl font-medium">Auction Results</h2>
+                          <p className="text-gray-600">
+                            {endDate > new Date() 
+                              ? "The auction is currently active. Final results will be available after it ends."
+                              : new Date() < startDate
+                                ? "The auction has not started yet."
+                                : "The auction has ended. Here are the final results."}
+                          </p>
+                        </div>
                         
-                        {displayBids.length === 0 && (
-                          <TableRow>
-                            <TableCell colSpan={8} className="text-center py-8 text-gray-500">
-                              {filter ? `No bids found for "${filter}"` : "No bids have been placed yet."}
-                            </TableCell>
-                          </TableRow>
-                        )}
-                      </TableBody>
-                    </Table>
-                  </div>
+                        <Button 
+                          variant="outline" 
+                          className="flex items-center" 
+                          onClick={handleExportToExcel}
+                        >
+                          <DownloadIcon className="h-4 w-4 mr-2" />
+                          Export to Excel
+                        </Button>
+                      </div>
+                      
+                      <div className="mb-4 space-y-4">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-gray-500">
+                            {allBids.length} total bids, showing {displayBids.length} bids
+                          </span>
+                          
+                          <Button 
+                            variant="link" 
+                            onClick={() => setShowAllBids(!showAllBids)}
+                            className="text-sm"
+                          >
+                            {showAllBids ? "Show Only Winning Bids" : "Show All Bids"}
+                          </Button>
+                        </div>
+                        
+                        <div>
+                          <Input
+                            type="text"
+                            placeholder="Filter by email (e.g., user@example.com)"
+                            value={filter}
+                            onChange={(e) => setFilter(e.target.value)}
+                            className="w-full"
+                          />
+                        </div>
+                      </div>
+                      
+                      <div className="overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Product</TableHead>
+                              <TableHead>Zone</TableHead>
+                              <TableHead>Model Code</TableHead>
+                              <TableHead>Starting Price</TableHead>
+                              <TableHead>Bid Amount</TableHead>
+                              <TableHead>Bidder</TableHead>
+                              <TableHead>Time</TableHead>
+                              <TableHead>Status</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {displayBids.map((bid, index) => {
+                              const product = getProductById(bid.productId);
+                              if (!product) return null;
+                              
+                              // Determine if this is the winning bid
+                              const isWinner = winners.get(bid.productId)?.id === bid.id;
+                              
+                              return (
+                                <TableRow key={bid.id} className={isWinner ? "bg-green-50" : ""}>
+                                  <TableCell className="font-medium">{product.name}</TableCell>
+                                  <TableCell>{product.zone || 'N/A'}</TableCell>
+                                  <TableCell>{product.modelCode}</TableCell>
+                                  <TableCell>AED {product.pricePerUnit?.toLocaleString() || product.startingPrice?.toLocaleString()}</TableCell>
+                                  <TableCell>AED {bid.amount.toLocaleString()}</TableCell>
+                                  <TableCell className="font-medium">{bid.userEmail}</TableCell>
+                                  <TableCell>{bid.timestamp.toLocaleString()}</TableCell>
+                                  <TableCell>
+                                    {isWinner ? (
+                                      <Badge className="bg-green-500 flex items-center space-x-1">
+                                        <TrophyIcon className="h-3 w-3 mr-1" />
+                                        Winner
+                                      </Badge>
+                                    ) : (
+                                      <Badge variant="outline" className="text-gray-500">
+                                        Outbid
+                                      </Badge>
+                                    )}
+                                  </TableCell>
+                                </TableRow>
+                              );
+                            })}
+                            
+                            {displayBids.length === 0 && (
+                              <TableRow>
+                                <TableCell colSpan={8} className="text-center py-8 text-gray-500">
+                                  {filter ? `No bids found for "${filter}"` : "No bids have been placed yet."}
+                                </TableCell>
+                              </TableRow>
+                            )}
+                          </TableBody>
+                        </Table>
+                      </div>
 
-                  <div className="mt-8">
-                    <h3 className="text-lg font-medium mb-4">Winners Summary</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {products.map(product => {
-                        const winningBid = getHighestBidForProduct(product.id);
-                        return (
-                          <div key={product.id} className="p-4 border rounded-lg flex items-start space-x-3">
-                            <div className="bg-gray-100 rounded-md p-2 flex-shrink-0">
-                              <TrophyIcon className={`h-5 w-5 ${winningBid ? 'text-yellow-500' : 'text-gray-400'}`} />
-                            </div>
-                            <div>
-                              <h4 className="font-medium">{product.name}</h4>
-                              <p className="text-sm text-gray-500">{product.zone} - {product.modelCode}</p>
-                              {winningBid ? (
-                                <div className="mt-1">
-                                  <p className="text-sm font-medium">Winner: <span className="text-green-600">{winningBid.userEmail}</span></p>
-                                  <p className="text-sm">Bid Amount: AED {winningBid.amount.toLocaleString()}</p>
+                      <div className="mt-8">
+                        <h3 className="text-lg font-medium mb-4">Winners Summary</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {allProducts.map(product => {
+                            const winningBid = winners.get(product.id);
+                            return (
+                              <div key={product.id} className="p-4 border rounded-lg flex items-start space-x-3">
+                                <div className="bg-gray-100 rounded-md p-2 flex-shrink-0">
+                                  <TrophyIcon className={`h-5 w-5 ${winningBid ? 'text-yellow-500' : 'text-gray-400'}`} />
                                 </div>
-                              ) : (
-                                <p className="text-sm text-gray-500 mt-1">No bids yet</p>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="bg-white rounded-lg border p-6">
-                  <h2 className="text-xl font-medium mb-4">Auction Statistics</h2>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <p className="text-gray-500 text-sm">Total Products</p>
-                      <p className="text-2xl font-bold">{products.length}</p>
-                    </div>
-                    
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <p className="text-gray-500 text-sm">Total Bids</p>
-                      <p className="text-2xl font-bold">{bids.length}</p>
+                                <div>
+                                  <h4 className="font-medium">{product.name}</h4>
+                                  <p className="text-sm text-gray-500">{product.zone || 'N/A'} - {product.modelCode}</p>
+                                  {winningBid ? (
+                                    <div className="mt-1">
+                                      <p className="text-sm font-medium">Winner: <span className="text-green-600">{winningBid.userEmail}</span></p>
+                                      <p className="text-sm">Bid Amount: AED {winningBid.amount.toLocaleString()}</p>
+                                    </div>
+                                  ) : (
+                                    <p className="text-sm text-gray-500 mt-1">No bids yet</p>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
                     </div>
                     
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <p className="text-gray-500 text-sm">Unique Bidders</p>
-                      <p className="text-2xl font-bold">
-                        {new Set(bids.map(bid => bid.userEmail)).size}
-                      </p>
+                    <div className="bg-white rounded-lg border p-6">
+                      <h2 className="text-xl font-medium mb-4">Auction Statistics</h2>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div className="bg-gray-50 rounded-lg p-4">
+                          <p className="text-gray-500 text-sm">Total Products</p>
+                          <p className="text-2xl font-bold">{allProducts.length}</p>
+                        </div>
+                        
+                        <div className="bg-gray-50 rounded-lg p-4">
+                          <p className="text-gray-500 text-sm">Total Bids</p>
+                          <p className="text-2xl font-bold">{allBids.length}</p>
+                        </div>
+                        
+                        <div className="bg-gray-50 rounded-lg p-4">
+                          <p className="text-gray-500 text-sm">Unique Bidders</p>
+                          <p className="text-2xl font-bold">
+                            {new Set(allBids.map(bid => bid.userEmail)).size}
+                          </p>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </div>
+                  </>
+                )}
               </motion.div>
             )}
           </div>

@@ -30,3 +30,12 @@ export {
   getAllProducts,
   getProductById
 } from './products';
+
+// Re-export admin related functions
+export {
+  getAllBids,
+  getAuctionSettings,
+  updateAuctionSettings,
+  getWinners,
+  isWinningBid
+} from './admin';
