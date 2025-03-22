@@ -1,12 +1,12 @@
 
 import { useState } from "react";
-import { uploadToCloudinary, buildCloudinaryUrl, CLOUDINARY_UPLOAD_PRESET } from "@/lib/cloudinary/client";
+import { uploadToCloudinary, buildCloudinaryUrl, CLOUDINARY_UPLOAD_PRESET, CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY } from "@/lib/cloudinary/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Loader2, Upload, Image as ImageIcon, AlertCircle } from "lucide-react";
 import { updateProductImage } from "@/lib/supabase/products";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import Spinner from "@/components/ui/loading/Spinner";
 
 interface ImageUploaderProps {
@@ -148,6 +148,7 @@ const ImageUploader = ({
       {uploadError && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Upload Error</AlertTitle>
           <AlertDescription>
             {uploadError}
           </AlertDescription>
@@ -180,6 +181,12 @@ const ImageUploader = ({
             <p>No image uploaded yet</p>
             <p className="text-xs mt-2 max-w-xs text-center">
               Using upload preset: <span className="font-mono">{CLOUDINARY_UPLOAD_PRESET}</span>
+            </p>
+            <p className="text-xs mt-1 text-center">
+              Cloud name: <span className="font-mono">{CLOUDINARY_CLOUD_NAME}</span>
+            </p>
+            <p className="text-xs mt-1 text-center">
+              Mode: <span className="font-mono">Signed Upload</span>
             </p>
           </div>
         </div>

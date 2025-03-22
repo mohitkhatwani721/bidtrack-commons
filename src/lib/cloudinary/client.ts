@@ -47,22 +47,28 @@ export const uploadToCloudinary = async (file: File, productId?: string): Promis
   try {
     console.log(`Starting upload to Cloudinary with preset: ${CLOUDINARY_UPLOAD_PRESET}`);
     console.log(`Using cloud name: ${CLOUDINARY_CLOUD_NAME}`);
-    console.log(`Using API key: ${CLOUDINARY_API_KEY.substring(0, 5)}...`);
     
     const formData = new FormData();
     formData.append('file', file);
+    
+    // For signed uploads, we need to append the upload preset
     formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
     formData.append('api_key', CLOUDINARY_API_KEY);
     
+    // Set the folder to asset/bid as specified in your preset settings
+    formData.append('folder', 'asset/bid');
+    
     // If we have a product ID, use it in the public_id to create an association
     if (productId) {
-      // Create a folder structure based on product ID
-      formData.append('public_id', `products/${productId}/${Date.now()}`);
+      // Create a unique filename based on product ID
+      const uniqueFilename = `${productId}_${Date.now()}`;
+      formData.append('public_id', uniqueFilename);
       console.log(`Associating image with product ID: ${productId}`);
-    } else {
-      // Use the asset/bid folder as specified in your preset settings
-      formData.append('folder', 'asset/bid');
     }
+
+    // Generate a timestamp for the signature
+    const timestamp = Math.round((new Date()).getTime() / 1000);
+    formData.append('timestamp', timestamp.toString());
 
     const uploadUrl = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`;
     console.log(`Uploading to: ${uploadUrl}`);

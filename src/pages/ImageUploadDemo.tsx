@@ -4,21 +4,19 @@ import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import ImageUploader from "@/components/shared/ImageUploader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { getAllProducts } from "@/lib/supabase/products";
 import { Loader2 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { InfoIcon, HelpCircle } from "lucide-react";
+import { InfoIcon, HelpCircle, CheckCircle } from "lucide-react";
 import { CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_UPLOAD_PRESET } from "@/lib/cloudinary/client";
 
 const ImageUploadDemo = () => {
   const [uploadedImageInfo, setUploadedImageInfo] = useState<{publicId: string, url: string} | null>(null);
   const [selectedProductId, setSelectedProductId] = useState<string>("");
-  const [configStatus, setConfigStatus] = useState<"checking" | "valid" | "invalid">("checking");
+  const [configStatus, setConfigStatus] = useState<"checking" | "valid" | "invalid" | "incomplete">("checking");
   
   // Check Cloudinary configuration on load
   useEffect(() => {
@@ -30,6 +28,9 @@ const ImageUploadDemo = () => {
       if (hasCloudName && hasApiKey && hasUploadPreset) {
         setConfigStatus("valid");
         console.log("Cloudinary configuration appears valid");
+      } else if (hasCloudName && hasApiKey) {
+        setConfigStatus("incomplete");
+        console.warn("Cloudinary configuration is incomplete - missing upload preset");
       } else {
         setConfigStatus("invalid");
         console.error("Missing Cloudinary configuration");
@@ -64,15 +65,27 @@ const ImageUploadDemo = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <Alert className={configStatus === "invalid" ? "bg-red-50 border-red-200" : "mb-4"}>
+              <Alert className={configStatus === "valid" ? "bg-green-50 border-green-200" : configStatus === "invalid" ? "bg-red-50 border-red-200" : "mb-4"}>
                 <InfoIcon className="h-4 w-4" />
                 <AlertTitle>Cloudinary Configuration</AlertTitle>
                 <AlertDescription>
-                  Cloud Name: <strong>{CLOUDINARY_CLOUD_NAME || "Not set"}</strong><br />
-                  API Key: <strong>{CLOUDINARY_API_KEY ? `${CLOUDINARY_API_KEY.substring(0, 6)}...` : "Not set"}</strong><br />
-                  Using Cloudinary preset: <strong>{CLOUDINARY_UPLOAD_PRESET || "Not set"}</strong> (Signed mode)<br />
-                  Default folder: <strong>asset/bid</strong><br />
-                  Images will be stored with unique filenames.
+                  <div className="space-y-2">
+                    <p><strong>Status:</strong> {
+                      configStatus === "valid" ? (
+                        <span className="text-green-600 font-medium flex items-center">
+                          <CheckCircle className="h-4 w-4 mr-1" /> Valid
+                        </span>
+                      ) : configStatus === "invalid" ? (
+                        <span className="text-red-600 font-medium">Invalid</span>
+                      ) : (
+                        <span className="text-amber-600 font-medium">Incomplete</span>
+                      )
+                    }</p>
+                    <p><strong>Cloud Name:</strong> <code className="bg-muted px-1 rounded">{CLOUDINARY_CLOUD_NAME || "Not set"}</code></p>
+                    <p><strong>API Key:</strong> <code className="bg-muted px-1 rounded">{CLOUDINARY_API_KEY ? `${CLOUDINARY_API_KEY.substring(0, 6)}...` : "Not set"}</code></p>
+                    <p><strong>Upload Preset:</strong> <code className="bg-muted px-1 rounded">{CLOUDINARY_UPLOAD_PRESET || "Not set"}</code> (Signed mode)</p>
+                    <p><strong>Destination Folder:</strong> <code className="bg-muted px-1 rounded">asset/bid</code></p>
+                  </div>
                 </AlertDescription>
               </Alert>
               
