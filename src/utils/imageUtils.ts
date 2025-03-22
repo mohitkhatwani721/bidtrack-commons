@@ -1,5 +1,4 @@
-
-import { generate } from 'random-words';
+import randomWords from 'random-words';
 
 /**
  * Generates a relevant placeholder image URL based on the product name.
@@ -10,7 +9,7 @@ export const getRelevantPlaceholder = (productName: string): string => {
   const placeholderText = placeholderKeywords.join(' ');
   
   // Generate a unique ID for the placeholder image
-  const placeholderId = generate({ exactly: 3, maxLength: 5 }).join('-');
+  const placeholderId = randomWords({ exactly: 3, maxLength: 5 }).join('-');
   
   // Construct the URL with the generated ID
   return `https://via.placeholder.com/400x300.png?text=${placeholderText}+${placeholderId}`;
@@ -25,7 +24,7 @@ export const generateAdditionalImages = (productName: string, mainImageUrl: stri
   
   for (let i = 0; i < additionalImageCount; i++) {
     // Generate a unique ID for each additional image
-    const imageId = generate({ exactly: 3, maxLength: 5 }).join('-');
+    const imageId = randomWords({ exactly: 3, maxLength: 5 }).join('-');
     
     // Construct the URL with the generated ID
     const imageUrl = `https://source.unsplash.com/random?${productName},${imageId}`;
