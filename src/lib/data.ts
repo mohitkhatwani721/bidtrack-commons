@@ -31,7 +31,7 @@ export const products: Product[] = [
     quantity: 2,
     pricePerUnit: 449.00,
     totalPrice: 898.00,
-    imageUrl: "https://images.unsplash.com/photo-1618160702438-9b02ab6515c9?q=80&w=1000&auto=format&fit=crop",
+    imageUrl: "https://images.unsplash.com/photo-1574269909862-7e1d70bb8078?q=80&w=1000&auto=format&fit=crop",
     description: "Cook, reheat, and defrost with precision using this feature-packed microwave with ceramic interior for easy cleaning."
   },
   {
@@ -42,7 +42,7 @@ export const products: Product[] = [
     quantity: 1,
     pricePerUnit: 2499.00,
     totalPrice: 2499.00,
-    imageUrl: "https://images.samsung.com/is/image/samsung/p6pim/ae/nv60a3140bs-gs/gallery/ae-electric-oven-nv60a3140bs-gs-446898-nv60a3140bs-gs-422344797?$650_519_PNG$",
+    imageUrl: "https://images.unsplash.com/photo-1585237017125-24baf8d7406f?q=80&w=1000&auto=format&fit=crop",
     description: "Bake like a professional with this 60L electric oven featuring multiple cooking modes and precise temperature control."
   },
   {
