@@ -1,3 +1,4 @@
+
 /**
  * Utility functions for handling product images
  */
@@ -260,7 +261,10 @@ export const optimizeImageUrl = (
     return cache[cacheKey].optimizedUrl;
   }
   
-  // For Unsplash and other image APIs, optimize as before
+  // Initialize optimizedUrl variable with the sanitized URL as default
+  let optimizedUrl = sanitizedUrl;
+  
+  // For Unsplash and other image APIs, optimize
   if (sanitizedUrl.includes('images.unsplash.com')) {
     const hasParams = sanitizedUrl.includes('?');
     const widthParam = `w=${optimizedWidth}`;
@@ -288,7 +292,7 @@ export const optimizeImageUrl = (
   // Save to cache
   cache[cacheKey] = {
     url: sanitizedUrl,
-    optimizedUrl,
+    optimizedUrl: optimizedUrl,
     timestamp: Date.now()
   };
   saveImageCache(cache);
