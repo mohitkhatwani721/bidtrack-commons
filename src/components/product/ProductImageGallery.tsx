@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { Product } from "@/lib/types";
@@ -11,6 +12,8 @@ import {
   sanitizeSamsungUrl
 } from "@/utils/imageUtils";
 import { toast } from "sonner";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { RefreshCcw } from "lucide-react";
 
 interface ProductImageGalleryProps {
   product: Product;
@@ -33,6 +36,7 @@ const ProductImageGallery = ({ product }: ProductImageGalleryProps) => {
   const [imagesLoaded, setImagesLoaded] = useState<Record<string, boolean>>({});
   const [placeholders, setPlaceholders] = useState<Record<string, string>>({});
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
+  const [retryCount, setRetryCount] = useState(0);
   const isMounted = useRef(true);
   
   // Reset active image if product changes
@@ -60,6 +64,23 @@ const ProductImageGallery = ({ product }: ProductImageGalleryProps) => {
         });
       }
     }
+  };
+  
+  // Retry loading images with a different approach
+  const handleRetryImages = () => {
+    console.log("Manually retrying image load");
+    
+    // Clear error states and reset loaded states
+    setImageErrors({});
+    setImagesLoaded({});
+    
+    // Increment retry counter to trigger reloading
+    setRetryCount(prev => prev + 1);
+    
+    toast.info("Retrying image load...", {
+      id: "retry-images",
+      duration: 2000
+    });
   };
   
   // Get appropriate image source with fallbacks
@@ -140,10 +161,29 @@ const ProductImageGallery = ({ product }: ProductImageGalleryProps) => {
     return () => {
       isMounted.current = false;
     };
-  }, [productImages, activeImage]);
+  }, [productImages, activeImage, retryCount]);
+  
+  // Check if all images have errors
+  const allImagesHaveErrors = productImages.every(img => imageErrors[img]);
   
   return (
     <div className="space-y-6">
+      {allImagesHaveErrors && (
+        <Alert variant="destructive" className="mb-4">
+          <AlertTitle>Image Loading Issue</AlertTitle>
+          <AlertDescription className="flex flex-col space-y-2">
+            <p>We're having trouble loading product images.</p>
+            <button 
+              onClick={handleRetryImages}
+              className="flex items-center justify-center space-x-2 bg-destructive/10 text-destructive hover:bg-destructive/20 py-1 px-2 rounded text-sm"
+            >
+              <RefreshCcw className="h-4 w-4 mr-1" />
+              Retry Loading Images
+            </button>
+          </AlertDescription>
+        </Alert>
+      )}
+      
       <motion.div 
         className="relative aspect-square rounded-lg overflow-hidden bg-white border"
         initial={{ opacity: 0, y: 20 }}
