@@ -1,4 +1,38 @@
+
 import randomWords from 'random-words';
+
+// Cloudinary configuration
+const CLOUDINARY_CLOUD_NAME = 'demo'; // Replace with your cloud name
+const CLOUDINARY_BASE_URL = `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload`;
+
+/**
+ * Generates a Cloudinary URL with transformations
+ */
+export const getCloudinaryUrl = (
+  imagePath: string,
+  options: {
+    width?: number;
+    height?: number;
+    quality?: number;
+    crop?: string;
+    format?: string;
+  } = {}
+): string => {
+  // Default options
+  const {
+    width = 400,
+    height = 300,
+    quality = 80,
+    crop = 'fill',
+    format = 'auto'
+  } = options;
+
+  // Build transformation string
+  const transformations = `w_${width},h_${height},q_${quality},c_${crop},f_${format}`;
+  
+  // Return full URL (using the demo account for now)
+  return `${CLOUDINARY_BASE_URL}/${transformations}/sample`;
+};
 
 /**
  * Generates a relevant placeholder image URL based on the product name.
@@ -6,13 +40,16 @@ import randomWords from 'random-words';
 export const getRelevantPlaceholder = (productName: string): string => {
   const keywords = productName.split(' ');
   const placeholderKeywords = keywords.length > 1 ? keywords.slice(0, 2) : keywords;
-  const placeholderText = placeholderKeywords.join(' ');
   
   // Generate a unique ID for the placeholder image
   const placeholderId = randomWords({ exactly: 3, maxLength: 5 }).join('-');
   
-  // Construct the URL with the generated ID
-  return `https://via.placeholder.com/400x300.png?text=${placeholderText}+${placeholderId}`;
+  // Using Cloudinary's sample images as fallbacks with text overlay
+  return getCloudinaryUrl('sample', { 
+    width: 400, 
+    height: 300,
+    crop: 'fill'
+  });
 };
 
 /**
@@ -22,12 +59,20 @@ export const generateAdditionalImages = (productName: string, mainImageUrl: stri
   const additionalImageCount = 3;
   const additionalImages: string[] = [];
   
+  // Use Cloudinary sample images with different crops/effects
+  const cloudinarySamples = ['sample', 'shoes', 'ecommerce', 'accessories'];
+  
   for (let i = 0; i < additionalImageCount; i++) {
-    // Generate a unique ID for each additional image
-    const imageId = randomWords({ exactly: 3, maxLength: 5 }).join('-');
+    // Get a sample image or use a different transformation of the main one
+    const sampleIndex = i % cloudinarySamples.length;
     
-    // Construct the URL with the generated ID
-    const imageUrl = `https://source.unsplash.com/random?${productName},${imageId}`;
+    // Generate a different looking sample for each position
+    const imageUrl = getCloudinaryUrl(cloudinarySamples[sampleIndex], {
+      width: 400,
+      height: 300,
+      crop: i % 2 === 0 ? 'fill' : 'pad'
+    });
+    
     additionalImages.push(imageUrl);
   }
   
@@ -99,6 +144,21 @@ export const optimizeImageUrl = (url: string, isHighPriority: boolean = false): 
       // Cache the result
       imageCache[url] = { optimizedUrl, timestamp: now };
       return optimizedUrl;
+    }
+    
+    // Handle Cloudinary images - reoptimize them based on priority
+    if (url.includes('cloudinary.com')) {
+      // Extract the base parts
+      const quality = isHighPriority ? 80 : 60;
+      const width = isHighPriority ? 1000 : 500;
+      
+      // If already a cloudinary URL, modify the transformations
+      if (url.includes('/image/upload/')) {
+        const parts = url.split('/image/upload/');
+        if (parts.length === 2) {
+          optimizedUrl = `${parts[0]}/image/upload/w_${width},q_${quality},f_auto/${parts[1].split('/').pop()}`;
+        }
+      }
     }
     
     // Handle Unsplash images

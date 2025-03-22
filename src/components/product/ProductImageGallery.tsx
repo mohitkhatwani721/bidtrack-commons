@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { Product } from "@/lib/types";
@@ -9,7 +8,7 @@ import {
   optimizeImageUrl, 
   preloadImages,
   generateLowQualityImagePlaceholder,
-  sanitizeSamsungUrl
+  getCloudinaryUrl
 } from "@/utils/imageUtils";
 import { toast } from "sonner";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
@@ -24,14 +23,15 @@ const ProductImageGallery = ({ product }: ProductImageGalleryProps) => {
   const mainImageRaw = product.imageUrl;
   console.log("Original main image:", mainImageRaw);
   
-  const mainImage = mainImageRaw ? sanitizeSamsungUrl(mainImageRaw) : getRelevantPlaceholder(product.name);
+  // If we have a product image, use it, otherwise get a cloudinary placeholder
+  const mainImage = mainImageRaw || getRelevantPlaceholder(product.name);
   console.log("Processed main image:", mainImage);
   
   // Generate additional relevant images for thumbnails based on product type
   const productImages = generateAdditionalImages(product.name, mainImage);
   console.log("Generated product images:", productImages);
   
-  const fallbackImage = getRelevantPlaceholder(product.name);
+  const fallbackImage = getCloudinaryUrl('sample', { width: 400, height: 300 });
   const [activeImage, setActiveImage] = useState<string>(mainImage); // Use main image as initial active
   const [imagesLoaded, setImagesLoaded] = useState<Record<string, boolean>>({});
   const [placeholders, setPlaceholders] = useState<Record<string, string>>({});
@@ -50,19 +50,16 @@ const ProductImageGallery = ({ product }: ProductImageGalleryProps) => {
   const handleImageError = (url: string) => {
     console.log(`Error loading image: ${url}`);
     
-    // Don't set error state for already sanitized URLs to prevent loops
-    if (!url.includes('samsung.com') || !url.includes('?')) {
-      setImageErrors(prev => ({ ...prev, [url]: true }));
-      
-      // If the main image failed to load, use fallback
-      if (url === activeImage) {
-        console.log(`Setting fallback for active image: ${url} -> ${fallbackImage}`);
-        setActiveImage(fallbackImage);
-        toast.error("Unable to load product image. Using placeholder instead.", {
-          id: "image-error",
-          duration: 3000
-        });
-      }
+    setImageErrors(prev => ({ ...prev, [url]: true }));
+    
+    // If the main image failed to load, use fallback
+    if (url === activeImage) {
+      console.log(`Setting fallback for active image: ${url} -> ${fallbackImage}`);
+      setActiveImage(fallbackImage);
+      toast.error("Unable to load product image. Using placeholder instead.", {
+        id: "image-error",
+        duration: 3000
+      });
     }
   };
   
@@ -91,13 +88,6 @@ const ProductImageGallery = ({ product }: ProductImageGalleryProps) => {
       return fallbackImage;
     }
     
-    // Sanitize Samsung URLs (most important fix)
-    if (url.includes('samsung.com')) {
-      const sanitizedUrl = sanitizeSamsungUrl(url);
-      console.log(`Using sanitized Samsung URL: ${sanitizedUrl}`);
-      return sanitizedUrl;
-    }
-    
     // For other URLs, use optimization
     return optimizeImageUrl(url, url === activeImage);
   };
@@ -108,14 +98,23 @@ const ProductImageGallery = ({ product }: ProductImageGalleryProps) => {
       try {
         const placeholderPromises = productImages.map(async (image) => {
           try {
-            // Sanitize URL before generating placeholder
-            const sanitizedImage = sanitizeSamsungUrl(image);
-            const placeholder = await generateLowQualityImagePlaceholder(sanitizedImage);
-            if (placeholder && isMounted.current) {
+            // Use Cloudinary's low quality transformations for placeholders
+            if (image.includes('cloudinary')) {
+              // For Cloudinary images, just use a lower quality version
+              const lowQualityUrl = image.replace('/upload/', '/upload/q_10,e_blur:1000/');
               setPlaceholders((prev) => ({
                 ...prev,
-                [image]: placeholder
+                [image]: lowQualityUrl
               }));
+            } else {
+              // For other images try to generate LQIP
+              const placeholder = await generateLowQualityImagePlaceholder(image);
+              if (placeholder && isMounted.current) {
+                setPlaceholders((prev) => ({
+                  ...prev,
+                  [image]: placeholder
+                }));
+              }
             }
           } catch (error) {
             console.error(`Error generating placeholder for ${image}:`, error);
@@ -139,10 +138,7 @@ const ProductImageGallery = ({ product }: ProductImageGalleryProps) => {
   useEffect(() => {
     const loadImages = async () => {
       try {
-        // Sanitize all URLs before preloading
-        const sanitizedImages = productImages.map(img => sanitizeSamsungUrl(img));
-        
-        const loadStatus = await preloadImages(sanitizedImages);
+        const loadStatus = await preloadImages(productImages);
         if (isMounted.current) {
           setImagesLoaded(loadStatus);
           

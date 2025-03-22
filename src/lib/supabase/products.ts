@@ -2,7 +2,7 @@
 import { toast } from "sonner";
 import { supabase } from "./client";
 import type { Product } from "@/lib/types";
-import { getRelevantPlaceholder, sanitizeSamsungUrl } from "@/utils/imageUtils";
+import { getRelevantPlaceholder, getCloudinaryUrl } from "@/utils/imageUtils";
 
 // Get all products from Supabase
 export const getAllProducts = async (): Promise<Product[]> => {
@@ -17,13 +17,10 @@ export const getAllProducts = async (): Promise<Product[]> => {
     }
     
     return data.map(item => {
-      // Fix Samsung image URLs and use placeholder if needed
+      // Use product image or Cloudinary fallback
       let imageUrl = item.image_url;
       
-      // Sanitize Samsung URLs
-      imageUrl = sanitizeSamsungUrl(imageUrl);
-      
-      // Use placeholder if no image or as fallback
+      // Use placeholder if no image
       if (!imageUrl) {
         imageUrl = getRelevantPlaceholder(item.name);
       }
@@ -71,9 +68,9 @@ export const getProductById = async (id: string): Promise<Product | null> => {
     
     console.log("Raw product data from Supabase:", data);
     
-    // Sanitize Samsung image URL
-    let imageUrl = sanitizeSamsungUrl(data.image_url);
-    console.log("Processed image URL:", imageUrl);
+    // Get image URL or fallback to Cloudinary
+    let imageUrl = data.image_url;
+    console.log("Original image URL:", imageUrl);
     
     // Use placeholder if no image or as fallback
     if (!imageUrl) {
