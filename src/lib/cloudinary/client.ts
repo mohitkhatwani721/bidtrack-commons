@@ -11,8 +11,11 @@ export const CLOUDINARY_UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_P
 // For demo purposes, we're including it here, but in a real app this should be handled server-side
 export const CLOUDINARY_API_SECRET = import.meta.env.VITE_CLOUDINARY_API_SECRET;
 
+// Cache for optimized transformations
+const transformationCache: Record<string, string> = {};
+
 /**
- * Builds a Cloudinary URL with transformations
+ * Builds a Cloudinary URL with transformations and caching
  */
 export const buildCloudinaryUrl = (
   publicId: string,
@@ -22,6 +25,8 @@ export const buildCloudinaryUrl = (
     quality?: number;
     crop?: string;
     format?: string;
+    fetchFormat?: string;
+    loading?: 'lazy' | 'eager';
   } = {}
 ): string => {
   if (!publicId) {
@@ -36,14 +41,41 @@ export const buildCloudinaryUrl = (
       height = 300,
       quality = 80,
       crop = 'fill',
-      format = 'auto'
+      format = 'auto',
+      fetchFormat = 'auto',
+      loading = 'lazy'
     } = options;
 
-    // Build transformation string
-    const transformations = `w_${width},h_${height},q_${quality},c_${crop},f_${format}`;
+    // Create a cache key from the options
+    const cacheKey = `${publicId}:${width}x${height}:q${quality}:${crop}:${format}:${fetchFormat}:${loading}`;
+    
+    // Check cache first
+    if (transformationCache[cacheKey]) {
+      return transformationCache[cacheKey];
+    }
+    
+    // Build transformation string with performance optimizations
+    let transformations = `w_${width},h_${height},q_${quality},c_${crop},f_${format},fl_progressive`;
+    
+    // Add fetch format for browser-optimized delivery
+    if (fetchFormat) {
+      transformations += `,fetch_format_${fetchFormat}`;
+    }
+    
+    // Add loading strategy
+    if (loading === 'eager') {
+      transformations += ',loading_eager';
+    } else {
+      transformations += ',loading_lazy';
+    }
     
     // Return full URL
-    return `${CLOUDINARY_BASE_URL}/${transformations}/${publicId}`;
+    const url = `${CLOUDINARY_BASE_URL}/${transformations}/${publicId}`;
+    
+    // Cache the result
+    transformationCache[cacheKey] = url;
+    
+    return url;
   } catch (error) {
     console.error('Error building Cloudinary URL:', error);
     return '';
@@ -51,7 +83,7 @@ export const buildCloudinaryUrl = (
 };
 
 /**
- * Uploads an image to Cloudinary (client-side)
+ * Uploads an image to Cloudinary (client-side) with product association
  */
 export const uploadToCloudinary = async (file: File, productId?: string): Promise<string | null> => {
   try {
@@ -80,9 +112,14 @@ export const uploadToCloudinary = async (file: File, productId?: string): Promis
     // If we have a product ID, use it in the public_id to create an association
     if (productId) {
       // Create a unique filename based on product ID
-      const uniqueFilename = `${productId}_${Date.now()}`;
+      const uniqueFilename = `product_${productId}_${Date.now()}`;
       formData.append('public_id', uniqueFilename);
       console.log(`Associating image with product ID: ${productId}`);
+      
+      // Request eager transformations to pre-generate common sizes
+      // This reduces latency for first-time viewers
+      formData.append('eager', 'w_400,h_300,c_fill|w_800,h_600,c_fill');
+      formData.append('eager_async', 'true');
     }
 
     // Define the upload URL
@@ -148,7 +185,9 @@ export const fetchViaCloudinary = (
     const fetchUrl = encodeURIComponent(externalUrl);
     
     const { width = 600, height = 400, quality = 80 } = options;
-    const transformations = `w_${width},h_${height},q_${quality},c_fill,f_auto`;
+    
+    // Enhanced transformations for better performance
+    const transformations = `w_${width},h_${height},q_${quality},c_fill,f_auto,fl_progressive`;
     
     return `${CLOUDINARY_BASE_URL}/${transformations}/fetch/${fetchUrl}`;
   } catch (error) {
@@ -173,4 +212,40 @@ export const isCloudinaryConfigured = (): boolean => {
   console.log(`- Cloud name: ${CLOUDINARY_CLOUD_NAME || 'MISSING'}`);
   console.log(`- Upload preset: ${CLOUDINARY_UPLOAD_PRESET || 'MISSING'}`);
   return isConfigured;
+};
+
+/**
+ * Generates an optimized image URL with performance in mind
+ */
+export const getOptimizedImageUrl = (
+  url: string,
+  options: {
+    width?: number;
+    height?: number;
+    quality?: number;
+    isHighPriority?: boolean;
+  } = {}
+): string => {
+  if (!url) return '';
+  
+  const { width = 400, height = 300, quality = 80, isHighPriority = false } = options;
+  
+  // If already a Cloudinary URL, just ensure it has optimized transformations
+  if (isCloudinaryUrl(url)) {
+    // Extract the public ID from the URL
+    const publicIdMatch = url.match(/\/upload\/(?:v\d+\/)?(.+)$/);
+    if (publicIdMatch && publicIdMatch[1]) {
+      const publicId = publicIdMatch[1];
+      return buildCloudinaryUrl(publicId, {
+        width,
+        height,
+        quality,
+        loading: isHighPriority ? 'eager' : 'lazy'
+      });
+    }
+    return url;
+  }
+  
+  // For external images, use Cloudinary's fetch capability
+  return fetchViaCloudinary(url, { width, height, quality });
 };

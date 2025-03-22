@@ -1,3 +1,4 @@
+
 import { toast } from "sonner";
 import { supabase } from "./client";
 import type { Product } from "@/lib/types";
@@ -5,12 +6,26 @@ import {
   getRelevantPlaceholder, 
   getCloudinaryUrl, 
   isCloudinaryUrl, 
-  convertToCloudinary 
+  convertToCloudinary,
+  optimizeImageUrl
 } from "@/utils/imageUtils";
 
-// Get all products from Supabase
+// Image optimization cache
+const productCache: Record<string, {data: Product, timestamp: number}> = {};
+const productListCache: {data: Product[], timestamp: number} | null = null;
+const CACHE_EXPIRY = 5 * 60 * 1000; // 5 minutes cache
+
+// Get all products from Supabase with caching
 export const getAllProducts = async (): Promise<Product[]> => {
   try {
+    const now = Date.now();
+    
+    // Check cache first
+    if (productListCache && now - productListCache.timestamp < CACHE_EXPIRY) {
+      console.log("Using cached product list");
+      return productListCache.data;
+    }
+    
     const { data, error } = await supabase
       .from('products')
       .select('*')
@@ -20,7 +35,7 @@ export const getAllProducts = async (): Promise<Product[]> => {
       throw error;
     }
     
-    return data.map(item => {
+    const products = data.map(item => {
       // Use product image or Cloudinary fallback
       let imageUrl = item.image_url;
       
@@ -50,6 +65,14 @@ export const getAllProducts = async (): Promise<Product[]> => {
         zone: 'Zone 1' // Default zone since we don't have this in the DB yet
       };
     });
+    
+    // Update cache
+    productListCache = {
+      data: products,
+      timestamp: now
+    };
+    
+    return products;
   } catch (error: any) {
     console.error("Error fetching products:", error);
     toast.error("Failed to load products");
@@ -57,10 +80,18 @@ export const getAllProducts = async (): Promise<Product[]> => {
   }
 };
 
-// Get a single product by ID
+// Get a single product by ID with caching
 export const getProductById = async (id: string): Promise<Product | null> => {
   try {
     console.log("Fetching product with ID:", id);
+    
+    const now = Date.now();
+    
+    // Check cache first
+    if (productCache[id] && now - productCache[id].timestamp < CACHE_EXPIRY) {
+      console.log("Using cached product data for:", id);
+      return productCache[id].data;
+    }
     
     // First try to fetch from Supabase
     const { data, error } = await supabase
@@ -90,7 +121,7 @@ export const getProductById = async (id: string): Promise<Product | null> => {
       imageUrl = getRelevantPlaceholder(data.name);
       console.log("Using placeholder image:", imageUrl);
     } 
-    // Optimize external images with Cloudinary
+    // Optimize external images with Cloudinary - with high quality for product detail
     else if (!isCloudinaryUrl(imageUrl)) {
       imageUrl = convertToCloudinary(imageUrl, {
         width: 800,
@@ -98,6 +129,10 @@ export const getProductById = async (id: string): Promise<Product | null> => {
         quality: 90
       });
       console.log("Using Cloudinary optimized image:", imageUrl);
+    }
+    // If already a Cloudinary URL, ensure it's using high quality settings for product detail
+    else {
+      imageUrl = optimizeImageUrl(imageUrl, true);
     }
     
     const product = {
@@ -110,6 +145,12 @@ export const getProductById = async (id: string): Promise<Product | null> => {
       imageUrl,
       description: data.description || '',
       zone: 'Zone 1' // Default zone since we don't have this in the DB yet
+    };
+    
+    // Update cache
+    productCache[id] = {
+      data: product,
+      timestamp: now
     };
     
     console.log("Processed product object:", product);
@@ -127,6 +168,10 @@ export const getProductById = async (id: string): Promise<Product | null> => {
 export const updateProductImage = async (productId: string, imageUrl: string): Promise<boolean> => {
   try {
     console.log(`Updating product ${productId} with image URL: ${imageUrl}`);
+    
+    // Clear caches when updating an image
+    delete productCache[productId];
+    productListCache = null;
     
     const { data, error } = await supabase
       .from('products')

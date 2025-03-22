@@ -5,7 +5,8 @@ import {
   buildCloudinaryUrl, 
   CLOUDINARY_UPLOAD_PRESET, 
   CLOUDINARY_CLOUD_NAME,
-  isCloudinaryConfigured
+  isCloudinaryConfigured,
+  getOptimizedImageUrl
 } from "@/lib/cloudinary/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -107,11 +108,12 @@ const ImageUploader = ({
       
       setUploadProgress(100);
       
-      // Generate the full URL from public ID
+      // Generate the full URL from public ID - with eager loading for this image
       const imageUrl = buildCloudinaryUrl(publicId, {
         width: 800,
         height: 600,
-        crop: 'fill'
+        crop: 'fill',
+        loading: 'eager'
       });
       
       setUploadedImage(imageUrl);

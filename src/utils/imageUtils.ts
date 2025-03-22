@@ -1,3 +1,4 @@
+
 import randomWords from 'random-words';
 import { 
   CLOUDINARY_CLOUD_NAME, 
@@ -5,12 +6,16 @@ import {
   buildCloudinaryUrl, 
   isCloudinaryUrl as isCloudinaryUrlCheck,
   fetchViaCloudinary,
-  uploadToCloudinary as uploadToCloudinaryClient
+  uploadToCloudinary as uploadToCloudinaryClient,
+  getOptimizedImageUrl
 } from '@/lib/cloudinary/client';
 
 // Re-export Cloudinary utility functions
 export const isCloudinaryUrl = isCloudinaryUrlCheck;
 export const getCloudinaryUrl = buildCloudinaryUrl;
+
+// Image optimization cache to prevent duplicate processing
+const optimizationCache: Record<string, string> = {};
 
 /**
  * Uploads an image to Cloudinary (client-side)
@@ -46,6 +51,13 @@ export const getRelevantPlaceholder = (productName: string): string => {
  * Generates additional relevant images for thumbnails based on product type.
  */
 export const generateAdditionalImages = (productName: string, mainImageUrl: string): string[] => {
+  // Cache key to prevent regenerating the same images
+  const cacheKey = `additionalImages:${productName}:${mainImageUrl}`;
+  
+  if (optimizationCache[cacheKey]) {
+    return JSON.parse(optimizationCache[cacheKey]);
+  }
+  
   const additionalImageCount = 3;
   const additionalImages: string[] = [];
   
@@ -70,6 +82,9 @@ export const generateAdditionalImages = (productName: string, mainImageUrl: stri
   if (!additionalImages.includes(mainImageUrl)) {
     additionalImages[0] = mainImageUrl;
   }
+  
+  // Cache the results
+  optimizationCache[cacheKey] = JSON.stringify(additionalImages);
   
   return additionalImages;
 };
@@ -104,63 +119,41 @@ export const sanitizeSamsungUrl = (url: string): string => {
 };
 
 /**
- * Cache for optimized image URLs
- */
-const imageCache: Record<string, { optimizedUrl: string, timestamp: number }> = {};
-
-/**
- * Optimizes image URLs for better performance
+ * Optimizes image URLs for better performance with caching
  */
 export const optimizeImageUrl = (url: string, isHighPriority: boolean = false): string => {
   // Early return for blank URLs
   if (!url) return url;
   
+  // Create a cache key including priority flag
+  const cacheKey = `optimize:${url}:${isHighPriority ? 'high' : 'low'}`;
+  
+  // Check cache first
+  if (optimizationCache[cacheKey]) {
+    return optimizationCache[cacheKey];
+  }
+  
   try {
-    // Check cache first (with 24hr expiry)
-    const cacheEntry = imageCache[url];
-    const now = Date.now();
-    if (cacheEntry && now - cacheEntry.timestamp < 24 * 60 * 60 * 1000) {
-      console.log(`Cache hit for: ${url}`);
-      return cacheEntry.optimizedUrl;
-    }
-    
     // Initialize optimizedUrl with the original URL
     let optimizedUrl = url;
     
     // Handle Samsung URLs first - most important fix
     if (url.includes('samsung.com')) {
       optimizedUrl = sanitizeSamsungUrl(url);
-      
-      // Cache the result
-      imageCache[url] = { optimizedUrl, timestamp: now };
+      optimizationCache[cacheKey] = optimizedUrl;
       return optimizedUrl;
     }
     
-    // Handle Cloudinary images - reoptimize them based on priority
-    if (url.includes('cloudinary.com')) {
-      // Extract the base parts
-      const quality = isHighPriority ? 80 : 60;
-      const width = isHighPriority ? 1000 : 500;
-      
-      // If already a cloudinary URL, modify the transformations
-      if (url.includes('/image/upload/')) {
-        const parts = url.split('/image/upload/');
-        if (parts.length === 2) {
-          optimizedUrl = `${parts[0]}/image/upload/w_${width},q_${quality},f_auto/${parts[1].split('/').pop()}`;
-        }
-      }
-    }
-    
-    // Handle Unsplash images
-    if (url.includes('unsplash.com')) {
-      // Extract the base URL and add quality parameters
-      const quality = isHighPriority ? 80 : 60;
-      const width = isHighPriority ? 1000 : 500;
-      optimizedUrl = `${url.split('?')[0]}?q=${quality}&w=${width}&auto=format&fit=crop`;
-    }
+    // Use the centralized optimization function
+    optimizedUrl = getOptimizedImageUrl(url, {
+      width: isHighPriority ? 800 : 400,
+      height: isHighPriority ? 800 : 400,
+      quality: isHighPriority ? 85 : 70,
+      isHighPriority
+    });
     
     // Cache the result
-    imageCache[url] = { optimizedUrl, timestamp: now };
+    optimizationCache[cacheKey] = optimizedUrl;
     return optimizedUrl;
   } catch (error) {
     console.error(`Error optimizing URL: ${url}`, error);
@@ -173,6 +166,14 @@ export const optimizeImageUrl = (url: string, isHighPriority: boolean = false): 
  */
 export const preloadImages = async (urls: string[]): Promise<Record<string, boolean>> => {
   const results: Record<string, boolean> = {};
+  
+  // Create a cache key for this preload operation
+  const cacheKey = `preload:${urls.join(',')}`;
+  
+  // Check if we've already preloaded these images
+  if (optimizationCache[cacheKey]) {
+    return JSON.parse(optimizationCache[cacheKey]);
+  }
   
   const preloadPromises = urls.map((url) => {
     return new Promise<void>((resolve) => {
@@ -203,6 +204,10 @@ export const preloadImages = async (urls: string[]): Promise<Record<string, bool
   });
   
   await Promise.all(preloadPromises);
+  
+  // Cache the results
+  optimizationCache[cacheKey] = JSON.stringify(results);
+  
   return results;
 };
 
@@ -210,20 +215,22 @@ export const preloadImages = async (urls: string[]): Promise<Record<string, bool
  * Generates a low-quality image placeholder (LQIP) using a data URL.
  */
 export const generateLowQualityImagePlaceholder = async (imageUrl: string): Promise<string | undefined> => {
-  try {
-    const response = await fetch(imageUrl);
-    const blob = await response.blob();
-    
-    return new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result as string);
-      reader.onerror = reject;
-      reader.readAsDataURL(blob);
-    });
-  } catch (error) {
-    console.error("Error generating LQIP:", error);
+  // Skip if not a Cloudinary URL - we'll only generate LQIPs for Cloudinary images
+  if (!isCloudinaryUrl(imageUrl)) {
     return undefined;
   }
+  
+  try {
+    // For Cloudinary URLs, create a low-quality version
+    const parts = imageUrl.split('/upload/');
+    if (parts.length === 2) {
+      return `${parts[0]}/upload/w_50,h_50,q_10,e_blur:1000/${parts[1]}`;
+    }
+  } catch (error) {
+    console.error("Error generating LQIP:", error);
+  }
+  
+  return undefined;
 };
 
 /**
@@ -234,10 +241,20 @@ export const convertToCloudinary = (url: string, options: {
   height?: number;
   quality?: number;
 } = {}): string => {
+  const cacheKey = `convert:${url}:${JSON.stringify(options)}`;
+  
+  // Check cache first
+  if (optimizationCache[cacheKey]) {
+    return optimizationCache[cacheKey];
+  }
+  
   // Skip if already a Cloudinary URL
   if (isCloudinaryUrl(url)) {
+    optimizationCache[cacheKey] = url;
     return url;
   }
 
-  return fetchViaCloudinary(url, options);
+  const result = fetchViaCloudinary(url, options);
+  optimizationCache[cacheKey] = result;
+  return result;
 };
