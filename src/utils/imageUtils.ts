@@ -3,6 +3,132 @@
  * Utility functions for handling product images
  */
 
+// Cache for storing optimized image URLs
+const IMAGE_CACHE_KEY = 'evision_image_cache';
+
+interface ImageCacheEntry {
+  url: string;
+  optimizedUrl: string;
+  timestamp: number;
+}
+
+// Get or initialize the image cache from localStorage
+const getImageCache = (): Record<string, ImageCacheEntry> => {
+  try {
+    const cachedData = localStorage.getItem(IMAGE_CACHE_KEY);
+    return cachedData ? JSON.parse(cachedData) : {};
+  } catch (error) {
+    console.error('Error accessing image cache:', error);
+    return {};
+  }
+};
+
+// Save the image cache to localStorage
+const saveImageCache = (cache: Record<string, ImageCacheEntry>): void => {
+  try {
+    localStorage.setItem(IMAGE_CACHE_KEY, JSON.stringify(cache));
+  } catch (error) {
+    console.error('Error saving image cache:', error);
+  }
+};
+
+// Clear expired entries from cache (older than 24 hours)
+const clearExpiredCache = (): void => {
+  const cache = getImageCache();
+  const now = Date.now();
+  const ONE_DAY = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+  
+  let hasChanges = false;
+  Object.keys(cache).forEach(key => {
+    if (now - cache[key].timestamp > ONE_DAY) {
+      delete cache[key];
+      hasChanges = true;
+    }
+  });
+  
+  if (hasChanges) {
+    saveImageCache(cache);
+  }
+};
+
+// Optimize image URL for better performance and cache the result
+export const optimizeImageUrl = (url: string, isMainImage: boolean = false): string => {
+  // Return original URL for non-string URLs or local assets
+  if (!url || typeof url !== 'string' || url.startsWith('/')) {
+    return url;
+  }
+  
+  // Check the cache first
+  const cache = getImageCache();
+  const cacheKey = `${url}_${isMainImage ? 'main' : 'thumb'}`;
+  
+  if (cache[cacheKey]) {
+    return cache[cacheKey].optimizedUrl;
+  }
+  
+  // If it's an Unsplash image, add size optimization parameters
+  let optimizedUrl = url;
+  if (url.includes('images.unsplash.com')) {
+    const hasParams = url.includes('?');
+    const optimizedWidth = isMainImage ? 'w=800' : 'w=300';
+    const qualityParam = 'q=80'; // Use 80% quality
+    
+    // Add or replace width parameter
+    if (hasParams) {
+      if (url.includes('w=')) {
+        optimizedUrl = url.replace(/w=\d+/, optimizedWidth);
+      } else {
+        optimizedUrl = `${url}&${optimizedWidth}&${qualityParam}`;
+      }
+    } else {
+      optimizedUrl = `${url}?${optimizedWidth}&${qualityParam}`;
+    }
+  } else if (url.includes('images.samsung.com')) {
+    // Optimize Samsung images if needed (they might already be optimized)
+    // We could potentially add Samsung-specific optimizations here
+  }
+  
+  // Save to cache
+  cache[cacheKey] = {
+    url,
+    optimizedUrl,
+    timestamp: Date.now()
+  };
+  saveImageCache(cache);
+  
+  return optimizedUrl;
+};
+
+// Preload an array of images and return a promise
+export const preloadImages = (urls: string[]): Promise<Record<string, boolean>> => {
+  // Clear expired cache entries
+  clearExpiredCache();
+  
+  // Create a map to track which images are loaded
+  const loadStatus: Record<string, boolean> = {};
+  
+  const imagePromises = urls.map(
+    (url) =>
+      new Promise<void>((resolve) => {
+        const img = new Image();
+        const optimizedUrl = optimizeImageUrl(url);
+        img.src = optimizedUrl;
+        
+        img.onload = () => {
+          loadStatus[url] = true;
+          resolve();
+        };
+        
+        img.onerror = () => {
+          loadStatus[url] = false;
+          resolve();
+        };
+      })
+  );
+  
+  return Promise.all(imagePromises).then(() => loadStatus);
+};
+
 // Get relevant placeholder based on product name
 export const getRelevantPlaceholder = (productName: string): string => {
   const lowerName = productName.toLowerCase();

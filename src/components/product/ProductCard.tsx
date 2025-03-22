@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -7,7 +6,7 @@ import { Product } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import AuctionTimer from "@/components/ui/AuctionTimer";
 import { Tag, Users } from "lucide-react";
-import { getRelevantPlaceholder } from "@/utils/imageUtils";
+import { getRelevantPlaceholder, optimizeImageUrl } from "@/utils/imageUtils";
 import { getHighestBidForProduct } from "@/lib/supabase";
 
 interface ProductCardProps {
@@ -20,6 +19,7 @@ const ProductCard = ({ product, featured = false }: ProductCardProps) => {
   const [highestBid, setHighestBid] = useState<number | null>(null);
   const [totalBids, setTotalBids] = useState<number>(0);
   const [loading, setLoading] = useState(true);
+  const [imageLoaded, setImageLoaded] = useState(false);
   
   // Use the product's imageUrl first, or the relevant placeholder if no imageUrl exists
   const imageToDisplay = product.imageUrl || getRelevantPlaceholder(product.name);
@@ -41,7 +41,13 @@ const ProductCard = ({ product, featured = false }: ProductCardProps) => {
     };
     
     fetchBidData();
-  }, [product.id]);
+    
+    // Preload the image
+    const img = new Image();
+    img.src = optimizeImageUrl(imageToDisplay, false);
+    img.onload = () => setImageLoaded(true);
+    
+  }, [product.id, imageToDisplay]);
 
   return (
     <motion.div
@@ -55,8 +61,12 @@ const ProductCard = ({ product, featured = false }: ProductCardProps) => {
     >
       <Link to={`/product/${product.id}`} className="block">
         <div className="relative aspect-square overflow-hidden bg-gray-100">
+          {!imageLoaded && (
+            <div className="absolute inset-0 bg-gray-100 animate-pulse" />
+          )}
+          
           <img
-            src={imageToDisplay}
+            src={optimizeImageUrl(imageToDisplay, false)}
             alt={product.name}
             className={cn(
               "h-full w-full object-cover transition-transform duration-500",

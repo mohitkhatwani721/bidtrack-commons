@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Product } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
-import { getRelevantPlaceholder, generateAdditionalImages } from "@/utils/imageUtils";
+import { getRelevantPlaceholder, generateAdditionalImages, optimizeImageUrl, preloadImages } from "@/utils/imageUtils";
 
 interface ProductImageGalleryProps {
   product: Product;
@@ -20,55 +20,13 @@ const ProductImageGallery = ({ product }: ProductImageGalleryProps) => {
   
   // Preload all images
   useEffect(() => {
-    const preloadImages = async () => {
-      const imagePromises = productImages.map(
-        (src) =>
-          new Promise((resolve) => {
-            const img = new Image();
-            img.src = optimizeImageUrl(src);
-            img.onload = () => {
-              setImagesLoaded((prev) => ({ ...prev, [src]: true }));
-              resolve(true);
-            };
-            img.onerror = () => {
-              setImagesLoaded((prev) => ({ ...prev, [src]: false }));
-              resolve(false);
-            };
-          })
-      );
-      
-      await Promise.all(imagePromises);
+    const loadImages = async () => {
+      const loadStatus = await preloadImages(productImages);
+      setImagesLoaded(loadStatus);
     };
     
-    preloadImages();
+    loadImages();
   }, [productImages]);
-  
-  // Function to optimize image URLs for better performance
-  const optimizeImageUrl = (url: string): string => {
-    // If it's an Unsplash image, add size optimization parameters
-    if (url.includes('images.unsplash.com')) {
-      // Extract the original URL parameters
-      const hasParams = url.includes('?');
-      // For thumbnails, use a smaller width (300px)
-      const isThumbnail = !url.includes('w=') || url !== activeImage;
-      const optimizedWidth = isThumbnail ? 'w=300' : 'w=800';
-      const qualityParam = 'q=80'; // Use 80% quality
-      
-      // Add or replace width parameter
-      if (hasParams) {
-        if (url.includes('w=')) {
-          return url.replace(/w=\d+/, optimizedWidth);
-        } else {
-          return `${url}&${optimizedWidth}&${qualityParam}`;
-        }
-      } else {
-        return `${url}?${optimizedWidth}&${qualityParam}`;
-      }
-    }
-    
-    // Return unmodified URL if it's not from Unsplash
-    return url;
-  };
   
   return (
     <div className="space-y-6">
@@ -84,7 +42,7 @@ const ProductImageGallery = ({ product }: ProductImageGalleryProps) => {
         )}
         
         <img
-          src={optimizeImageUrl(activeImage)}
+          src={optimizeImageUrl(activeImage, true)}
           alt={product.name}
           className="h-full w-full object-contain p-6"
           loading="eager" // Load main product image immediately
@@ -118,7 +76,7 @@ const ProductImageGallery = ({ product }: ProductImageGalleryProps) => {
             )}
             
             <img 
-              src={optimizeImageUrl(image)}
+              src={optimizeImageUrl(image, false)}
               alt={`${product.name} view ${i + 1}`}
               className="h-full w-full object-contain p-2"
               loading="lazy" // Lazy load thumbnails
