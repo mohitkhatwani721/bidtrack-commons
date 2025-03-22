@@ -1,3 +1,4 @@
+
 // Cloudinary configuration
 export const CLOUDINARY_CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || 'di8rdvt2y';
 export const CLOUDINARY_API_KEY = import.meta.env.VITE_CLOUDINARY_API_KEY || '293774813922618';
@@ -23,20 +24,30 @@ export const buildCloudinaryUrl = (
     format?: string;
   } = {}
 ): string => {
-  // Default options
-  const {
-    width = 400,
-    height = 300,
-    quality = 80,
-    crop = 'fill',
-    format = 'auto'
-  } = options;
+  if (!publicId) {
+    console.warn('No publicId provided to buildCloudinaryUrl');
+    return '';
+  }
 
-  // Build transformation string
-  const transformations = `w_${width},h_${height},q_${quality},c_${crop},f_${format}`;
-  
-  // Return full URL
-  return `${CLOUDINARY_BASE_URL}/${transformations}/${publicId}`;
+  try {
+    // Default options
+    const {
+      width = 400,
+      height = 300,
+      quality = 80,
+      crop = 'fill',
+      format = 'auto'
+    } = options;
+
+    // Build transformation string
+    const transformations = `w_${width},h_${height},q_${quality},c_${crop},f_${format}`;
+    
+    // Return full URL
+    return `${CLOUDINARY_BASE_URL}/${transformations}/${publicId}`;
+  } catch (error) {
+    console.error('Error building Cloudinary URL:', error);
+    return '';
+  }
 };
 
 /**
@@ -130,7 +141,7 @@ export const fetchViaCloudinary = (
   } = {}
 ): string => {
   // Skip if URL is invalid or empty
-  if (!externalUrl) return externalUrl;
+  if (!externalUrl) return '';
 
   try {
     // For external images, we can use Cloudinary's fetch capability
@@ -151,4 +162,15 @@ export const fetchViaCloudinary = (
  */
 export const isCloudinaryUrl = (url: string): boolean => {
   return url && url.includes('cloudinary.com');
+};
+
+/**
+ * Check if Cloudinary configuration is valid
+ */
+export const isCloudinaryConfigured = (): boolean => {
+  const isConfigured = Boolean(CLOUDINARY_CLOUD_NAME && CLOUDINARY_UPLOAD_PRESET);
+  console.log(`Cloudinary configuration check: ${isConfigured ? 'VALID' : 'INVALID'}`);
+  console.log(`- Cloud name: ${CLOUDINARY_CLOUD_NAME || 'MISSING'}`);
+  console.log(`- Upload preset: ${CLOUDINARY_UPLOAD_PRESET || 'MISSING'}`);
+  return isConfigured;
 };

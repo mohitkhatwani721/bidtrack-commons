@@ -1,10 +1,16 @@
 
-import { useState } from "react";
-import { uploadToCloudinary, buildCloudinaryUrl, CLOUDINARY_UPLOAD_PRESET, CLOUDINARY_CLOUD_NAME } from "@/lib/cloudinary/client";
+import { useState, useEffect } from "react";
+import { 
+  uploadToCloudinary, 
+  buildCloudinaryUrl, 
+  CLOUDINARY_UPLOAD_PRESET, 
+  CLOUDINARY_CLOUD_NAME,
+  isCloudinaryConfigured
+} from "@/lib/cloudinary/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Loader2, Upload, Image as ImageIcon, AlertCircle } from "lucide-react";
+import { Loader2, Upload, Image as ImageIcon, AlertCircle, CheckCircle, XCircle } from "lucide-react";
 import { updateProductImage } from "@/lib/supabase/products";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import Spinner from "@/components/ui/loading/Spinner";
@@ -26,6 +32,27 @@ const ImageUploader = ({
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [isConfigValid, setIsConfigValid] = useState<boolean | null>(null);
+  
+  // Check configuration on mount
+  useEffect(() => {
+    // Check if Cloudinary is configured properly
+    const checkConfig = () => {
+      try {
+        const isValid = isCloudinaryConfigured();
+        setIsConfigValid(isValid);
+        if (!isValid) {
+          setUploadError('Cloudinary is not configured correctly. Please check your environment variables.');
+        }
+      } catch (error) {
+        console.error("Error checking Cloudinary configuration:", error);
+        setIsConfigValid(false);
+        setUploadError('Failed to verify Cloudinary configuration.');
+      }
+    };
+    
+    checkConfig();
+  }, []);
   
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -33,6 +60,13 @@ const ImageUploader = ({
     
     // Clear previous errors
     setUploadError(null);
+    
+    // Check if configuration is valid
+    if (isConfigValid === false) {
+      toast.error("Cloudinary is not configured correctly");
+      setUploadError('Cloudinary configuration is invalid. Cannot upload images.');
+      return;
+    }
     
     // Check file type
     if (!file.type.startsWith('image/')) {
@@ -117,20 +151,40 @@ const ImageUploader = ({
   
   return (
     <div className={`space-y-4 ${className}`}>
+      {isConfigValid === false && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Configuration Error</AlertTitle>
+          <AlertDescription>
+            Cloudinary is not configured correctly. Please check your environment variables.
+          </AlertDescription>
+        </Alert>
+      )}
+      
+      {isConfigValid === true && (
+        <Alert variant="success" className="bg-green-50 border-green-200">
+          <CheckCircle className="h-4 w-4 text-green-600" />
+          <AlertTitle className="text-green-700">Cloudinary Configuration Valid</AlertTitle>
+          <AlertDescription className="text-green-600">
+            Ready to upload images.
+          </AlertDescription>
+        </Alert>
+      )}
+      
       <div className="flex flex-col sm:flex-row items-start sm:items-end gap-4 w-full">
         <div className="flex-1 w-full">
           <Input
             type="file"
             accept="image/*"
             onChange={handleFileChange}
-            disabled={isUploading}
+            disabled={isUploading || isConfigValid === false}
             className="cursor-pointer"
             id="file-upload"
             style={{ display: 'none' }} // Hide the default file input
           />
           <Button
             type="button"
-            disabled={isUploading}
+            disabled={isUploading || isConfigValid === false}
             className="w-full"
             onClick={triggerFileInput}
           >
@@ -191,6 +245,11 @@ const ImageUploader = ({
             </p>
             <p className="text-xs mt-1 text-center">
               Mode: <span className="font-mono">Unsigned Upload</span>
+            </p>
+            <p className="text-xs mt-1 text-center">
+              Configuration: <span className={`font-mono ${isConfigValid === true ? 'text-green-600' : isConfigValid === false ? 'text-red-600' : 'text-yellow-600'}`}>
+                {isConfigValid === true ? 'VALID' : isConfigValid === false ? 'INVALID' : 'CHECKING...'}
+              </span>
             </p>
           </div>
         </div>
