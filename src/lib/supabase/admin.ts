@@ -68,19 +68,14 @@ export const getAuctionSettings = async (): Promise<AuctionSettings | null> => {
       .maybeSingle();
       
     if (error) {
-      // If the error is that the table doesn't exist, return default settings
-      if (error.code === 'PGRST116') {
-        return {
-          startDate: new Date(new Date().getTime() - 24 * 60 * 60 * 1000), // Started yesterday
-          endDate: new Date(new Date().getTime() + 7 * 24 * 60 * 60 * 1000), // Ends in 7 days
-          isActive: true
-        };
-      }
-      throw error;
+      console.error('Error fetching auction settings:', error);
+      toast.error('Failed to fetch auction settings');
+      return null;
     }
     
     if (!data) {
       // No settings found, return default
+      console.log('No auction settings found, using defaults');
       return {
         startDate: new Date(new Date().getTime() - 24 * 60 * 60 * 1000), // Started yesterday
         endDate: new Date(new Date().getTime() + 7 * 24 * 60 * 60 * 1000), // Ends in 7 days
@@ -95,6 +90,7 @@ export const getAuctionSettings = async (): Promise<AuctionSettings | null> => {
     };
   } catch (error) {
     console.error('Error fetching auction settings:', error);
+    toast.error('Failed to fetch auction settings');
     return null;
   }
 };
@@ -118,12 +114,17 @@ export const updateAuctionSettings = async (startDate: Date, endDate: Date): Pro
       .select('id')
       .limit(1);
       
-    if (checkError) throw checkError;
+    if (checkError) {
+      console.error('Error checking existing settings:', checkError);
+      toast.error('Failed to check existing settings');
+      return false;
+    }
     
     let result;
     
     if (existingSettings && existingSettings.length > 0) {
       // Update existing record
+      console.log('Updating existing auction settings');
       result = await supabase
         .from('auction_settings')
         .update({
@@ -134,6 +135,7 @@ export const updateAuctionSettings = async (startDate: Date, endDate: Date): Pro
         .eq('id', existingSettings[0].id);
     } else {
       // Insert new record
+      console.log('Creating new auction settings');
       result = await supabase
         .from('auction_settings')
         .insert([{
@@ -143,8 +145,13 @@ export const updateAuctionSettings = async (startDate: Date, endDate: Date): Pro
         }]);
     }
     
-    if (result.error) throw result.error;
+    if (result.error) {
+      console.error('Error updating auction settings:', result.error);
+      toast.error('Failed to update auction settings: ' + result.error.message);
+      return false;
+    }
     
+    console.log('Auction settings updated successfully');
     return true;
   } catch (error) {
     console.error('Error updating auction settings:', error);
