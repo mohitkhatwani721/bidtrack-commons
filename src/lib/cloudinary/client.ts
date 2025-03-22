@@ -1,4 +1,3 @@
-
 // Cloudinary configuration
 export const CLOUDINARY_CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || 'di8rdvt2y';
 export const CLOUDINARY_API_KEY = import.meta.env.VITE_CLOUDINARY_API_KEY || '293774813922618';
@@ -49,6 +48,15 @@ export const uploadToCloudinary = async (file: File, productId?: string): Promis
     console.log(`Starting upload to Cloudinary with preset: ${CLOUDINARY_UPLOAD_PRESET}`);
     console.log(`Using cloud name: ${CLOUDINARY_CLOUD_NAME}`);
     
+    // Validate configuration
+    if (!CLOUDINARY_CLOUD_NAME) {
+      throw new Error('Cloudinary cloud name is not configured');
+    }
+    
+    if (!CLOUDINARY_UPLOAD_PRESET) {
+      throw new Error('Cloudinary upload preset is not configured');
+    }
+    
     const formData = new FormData();
     formData.append('file', file);
     
@@ -76,13 +84,27 @@ export const uploadToCloudinary = async (file: File, productId?: string): Promis
       body: formData,
     });
 
+    const responseText = await response.text();
+    let data;
+    
+    try {
+      // Try to parse as JSON
+      data = JSON.parse(responseText);
+    } catch (e) {
+      console.error('Failed to parse Cloudinary response as JSON:', responseText);
+      throw new Error(`Cloudinary returned non-JSON response: ${responseText.substring(0, 100)}...`);
+    }
+    
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`Upload failed with status ${response.status}: ${errorText}`);
-      throw new Error(`Upload failed with status ${response.status}: ${errorText}`);
+      console.error(`Upload failed with status ${response.status}:`, data);
+      
+      if (data && data.error && data.error.message) {
+        throw new Error(`Cloudinary error: ${data.error.message}`);
+      } else {
+        throw new Error(`Upload failed with status ${response.status}`);
+      }
     }
 
-    const data = await response.json();
     console.log('Upload successful:', data);
     
     if (data.public_id) {
@@ -92,7 +114,7 @@ export const uploadToCloudinary = async (file: File, productId?: string): Promis
     }
   } catch (error) {
     console.error('Error uploading to Cloudinary:', error);
-    return null;
+    throw error; // Re-throw to let caller handle the error
   }
 };
 

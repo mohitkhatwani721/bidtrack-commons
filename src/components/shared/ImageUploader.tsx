@@ -106,6 +106,7 @@ const ImageUploader = ({
       }
     } finally {
       setIsUploading(false);
+      setUploadProgress(0); // Reset progress
     }
   };
   

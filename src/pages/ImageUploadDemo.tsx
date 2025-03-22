@@ -11,18 +11,19 @@ import { getAllProducts } from "@/lib/supabase/products";
 import { Loader2, InfoIcon, HelpCircle, CheckCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_UPLOAD_PRESET } from "@/lib/cloudinary/client";
+import { toast } from "sonner";
 
 const ImageUploadDemo = () => {
   const [uploadedImageInfo, setUploadedImageInfo] = useState<{publicId: string, url: string} | null>(null);
   const [selectedProductId, setSelectedProductId] = useState<string>("");
-  const [configStatus, setConfigStatus] = useState<"valid" | "invalid" | "incomplete">("valid");
+  const [configStatus, setConfigStatus] = useState<"valid" | "invalid" | "incomplete" | "checking">("checking");
   
   // Check Cloudinary configuration on mount
   useEffect(() => {
     console.log("ImageUploadDemo mounted");
     console.log("Cloudinary config:", {
       cloudName: CLOUDINARY_CLOUD_NAME,
-      apiKey: CLOUDINARY_API_KEY,
+      apiKey: CLOUDINARY_API_KEY ? "[REDACTED]" : undefined,
       uploadPreset: CLOUDINARY_UPLOAD_PRESET
     });
     
@@ -41,6 +42,22 @@ const ImageUploadDemo = () => {
       setConfigStatus("invalid");
       console.error("Missing critical Cloudinary configuration");
     }
+    
+    // Test if we can reach Cloudinary (just for validation)
+    const testUrl = `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/w_100/sample`;
+    
+    fetch(testUrl)
+      .then(response => {
+        if (!response.ok) {
+          console.error("Cloudinary test request failed");
+          toast.error("Failed to connect to Cloudinary");
+        } else {
+          console.log("Cloudinary test request succeeded");
+        }
+      })
+      .catch(error => {
+        console.error("Error testing Cloudinary connection:", error);
+      });
   }, []);
   
   // Fetch products for the dropdown
@@ -68,29 +85,36 @@ const ImageUploadDemo = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <Alert className={configStatus === "valid" ? "bg-green-50 border-green-200" : configStatus === "invalid" ? "bg-red-50 border-red-200" : "mb-4"}>
-                <InfoIcon className="h-4 w-4" />
-                <AlertTitle>Cloudinary Configuration</AlertTitle>
-                <AlertDescription>
-                  <div className="space-y-2">
-                    <p><strong>Status:</strong> {
-                      configStatus === "valid" ? (
-                        <span className="text-green-600 font-medium flex items-center">
-                          <CheckCircle className="h-4 w-4 mr-1" /> Valid
-                        </span>
-                      ) : configStatus === "invalid" ? (
-                        <span className="text-red-600 font-medium">Invalid</span>
-                      ) : (
-                        <span className="text-amber-600 font-medium">Incomplete</span>
-                      )
-                    }</p>
-                    <p><strong>Cloud Name:</strong> <code className="bg-muted px-1 rounded">{CLOUDINARY_CLOUD_NAME || "Not set"}</code></p>
-                    <p><strong>API Key:</strong> <code className="bg-muted px-1 rounded">{CLOUDINARY_API_KEY ? `${CLOUDINARY_API_KEY.substring(0, 6)}...` : "Not set"}</code></p>
-                    <p><strong>Upload Preset:</strong> <code className="bg-muted px-1 rounded">{CLOUDINARY_UPLOAD_PRESET || "Not set"}</code></p>
-                    <p><strong>Destination Folder:</strong> <code className="bg-muted px-1 rounded">asset/bid</code></p>
-                  </div>
-                </AlertDescription>
-              </Alert>
+              {configStatus === "checking" ? (
+                <div className="flex items-center space-x-2">
+                  <Loader2 className="animate-spin h-4 w-4" />
+                  <span>Checking Cloudinary configuration...</span>
+                </div>
+              ) : (
+                <Alert className={configStatus === "valid" ? "bg-green-50 border-green-200" : configStatus === "invalid" ? "bg-red-50 border-red-200" : "mb-4"}>
+                  <InfoIcon className="h-4 w-4" />
+                  <AlertTitle>Cloudinary Configuration</AlertTitle>
+                  <AlertDescription>
+                    <div className="space-y-2">
+                      <p><strong>Status:</strong> {
+                        configStatus === "valid" ? (
+                          <span className="text-green-600 font-medium flex items-center">
+                            <CheckCircle className="h-4 w-4 mr-1" /> Valid
+                          </span>
+                        ) : configStatus === "invalid" ? (
+                          <span className="text-red-600 font-medium">Invalid</span>
+                        ) : (
+                          <span className="text-amber-600 font-medium">Incomplete</span>
+                        )
+                      }</p>
+                      <p><strong>Cloud Name:</strong> <code className="bg-muted px-1 rounded">{CLOUDINARY_CLOUD_NAME || "Not set"}</code></p>
+                      <p><strong>API Key:</strong> <code className="bg-muted px-1 rounded">{CLOUDINARY_API_KEY ? `${CLOUDINARY_API_KEY.substring(0, 6)}...` : "Not set"}</code></p>
+                      <p><strong>Upload Preset:</strong> <code className="bg-muted px-1 rounded">{CLOUDINARY_UPLOAD_PRESET || "Not set"}</code></p>
+                      <p><strong>Destination Folder:</strong> <code className="bg-muted px-1 rounded">asset/bid</code></p>
+                    </div>
+                  </AlertDescription>
+                </Alert>
+              )}
               
               {configStatus === "invalid" && (
                 <Alert variant="destructive">
