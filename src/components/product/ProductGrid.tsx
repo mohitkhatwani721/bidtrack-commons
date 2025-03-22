@@ -6,16 +6,20 @@ import ProductCard from "./ProductCard";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search } from "lucide-react";
+import { getAllProducts } from "@/lib/supabase";
+import { toast } from "sonner";
 
 interface ProductGridProps {
-  products: Product[];
+  initialProducts?: Product[];
 }
 
-const ProductGrid = ({ products }: ProductGridProps) => {
+const ProductGrid = ({ initialProducts }: ProductGridProps) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedZone, setSelectedZone] = useState<string>("all");
   const [sortBy, setSortBy] = useState<string>("default");
-  const [filteredProducts, setFilteredProducts] = useState<Product[]>(products);
+  const [products, setProducts] = useState<Product[]>(initialProducts || []);
+  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(!initialProducts);
   const [mounted, setMounted] = useState(false);
 
   // Get unique zones
@@ -23,7 +27,25 @@ const ProductGrid = ({ products }: ProductGridProps) => {
 
   useEffect(() => {
     setMounted(true);
-  }, []);
+    
+    // Only fetch products if initialProducts wasn't provided
+    if (!initialProducts) {
+      fetchProducts();
+    }
+  }, [initialProducts]);
+  
+  const fetchProducts = async () => {
+    try {
+      setLoading(true);
+      const data = await getAllProducts();
+      setProducts(data);
+    } catch (error) {
+      console.error("Error fetching products:", error);
+      toast.error("Failed to load products");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     let result = [...products];
@@ -99,7 +121,23 @@ const ProductGrid = ({ products }: ProductGridProps) => {
         </Select>
       </div>
       
-      {filteredProducts.length === 0 ? (
+      {loading ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {[1, 2, 3, 4, 5, 6].map((_, index) => (
+            <div key={index} className="border rounded-lg overflow-hidden animate-pulse">
+              <div className="bg-gray-200 h-64 w-full"></div>
+              <div className="p-4 space-y-3">
+                <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                <div className="pt-3 space-y-3">
+                  <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+                  <div className="h-3 bg-gray-200 rounded w-1/3"></div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : filteredProducts.length === 0 ? (
         <div className="text-center py-12">
           <p className="text-gray-500">No products found.</p>
         </div>

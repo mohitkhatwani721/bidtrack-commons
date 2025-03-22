@@ -3,7 +3,6 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Product } from "@/lib/types";
-import { products } from "@/lib/data";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import ProductImageGallery from "./ProductImageGallery";
@@ -11,6 +10,7 @@ import ProductHeader from "./ProductHeader";
 import ProductStats from "./ProductStats";
 import ProductBidSection from "./ProductBidSection";
 import ProductTabs from "./ProductTabs";
+import { getProductById } from "@/lib/supabase";
 
 const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -21,13 +21,17 @@ const ProductDetail = () => {
 
   useEffect(() => {
     setMounted(true);
-    setLoading(true);
     
-    // Find product by id
-    const foundProduct = products.find(p => p.id === id);
-    setProduct(foundProduct || null);
+    const fetchProduct = async () => {
+      if (!id) return;
+      
+      setLoading(true);
+      const fetchedProduct = await getProductById(id);
+      setProduct(fetchedProduct);
+      setLoading(false);
+    };
     
-    setLoading(false);
+    fetchProduct();
   }, [id]);
 
   useEffect(() => {

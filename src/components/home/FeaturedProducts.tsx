@@ -1,20 +1,39 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { products } from "@/lib/data";
+import { Product } from "@/lib/types";
 import ProductCard from "@/components/product/ProductCard";
+import { getAllProducts } from "@/lib/supabase";
+import { toast } from "sonner";
 
 const FeaturedProducts = () => {
-  // Get 4 featured products (most expensive)
-  const featuredProducts = [...products]
-    .sort((a, b) => b.pricePerUnit - a.pricePerUnit)
-    .slice(0, 4);
-  
+  const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
+    fetchFeaturedProducts();
   }, []);
+  
+  const fetchFeaturedProducts = async () => {
+    try {
+      setLoading(true);
+      const allProducts = await getAllProducts();
+      
+      // Get 4 featured products (most expensive)
+      const featured = [...allProducts]
+        .sort((a, b) => b.pricePerUnit - a.pricePerUnit)
+        .slice(0, 4);
+        
+      setFeaturedProducts(featured);
+    } catch (error) {
+      console.error("Error fetching featured products:", error);
+      toast.error("Failed to load featured products");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   if (!mounted) return null;
 
@@ -48,18 +67,36 @@ const FeaturedProducts = () => {
           </motion.p>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {featuredProducts.map((product, index) => (
-            <motion.div
-              key={product.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.1 * (index + 1) }}
-            >
-              <ProductCard product={product} featured />
-            </motion.div>
-          ))}
-        </div>
+        {loading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[1, 2, 3, 4].map((_, index) => (
+              <div key={index} className="border rounded-lg overflow-hidden animate-pulse">
+                <div className="bg-gray-200 h-64 w-full"></div>
+                <div className="p-4 space-y-3">
+                  <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                  <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                  <div className="pt-3 space-y-3">
+                    <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+                    <div className="h-3 bg-gray-200 rounded w-1/3"></div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {featuredProducts.map((product, index) => (
+              <motion.div
+                key={product.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.1 * (index + 1) }}
+              >
+                <ProductCard product={product} featured />
+              </motion.div>
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );

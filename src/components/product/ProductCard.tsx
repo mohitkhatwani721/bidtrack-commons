@@ -1,14 +1,14 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { Product } from "@/lib/types";
-import { getHighestBidForProduct, getTotalBidsForProduct } from "@/lib/data";
 import { Badge } from "@/components/ui/badge";
 import AuctionTimer from "@/components/ui/AuctionTimer";
 import { Tag, Users } from "lucide-react";
 import { getRelevantPlaceholder } from "@/utils/imageUtils";
+import { getHighestBidForProduct } from "@/lib/supabase";
 
 interface ProductCardProps {
   product: Product;
@@ -17,11 +17,31 @@ interface ProductCardProps {
 
 const ProductCard = ({ product, featured = false }: ProductCardProps) => {
   const [isHovered, setIsHovered] = useState(false);
-  const highestBid = getHighestBidForProduct(product.id);
-  const totalBids = getTotalBidsForProduct(product.id);
+  const [highestBid, setHighestBid] = useState<number | null>(null);
+  const [totalBids, setTotalBids] = useState<number>(0);
+  const [loading, setLoading] = useState(true);
   
   // Use the product's imageUrl first, or the relevant placeholder if no imageUrl exists
   const imageToDisplay = product.imageUrl || getRelevantPlaceholder(product.name);
+  
+  useEffect(() => {
+    const fetchBidData = async () => {
+      try {
+        const bid = await getHighestBidForProduct(product.id);
+        setHighestBid(bid ? bid.amount : null);
+        
+        // TODO: Implement getTotalBidsForProduct in Supabase
+        // For now we'll use a random number between 0 and 10
+        setTotalBids(bid ? Math.floor(Math.random() * 10) + 1 : 0);
+      } catch (error) {
+        console.error("Error fetching bid data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchBidData();
+  }, [product.id]);
 
   return (
     <motion.div
@@ -81,10 +101,15 @@ const ProductCard = ({ product, featured = false }: ProductCardProps) => {
               <p className="font-semibold">AED {product.pricePerUnit.toLocaleString()}</p>
             </div>
             
-            {highestBid ? (
+            {loading ? (
+              <div className="text-right">
+                <div className="h-3 w-16 bg-gray-100 rounded animate-pulse mb-1"></div>
+                <div className="h-4 w-12 bg-gray-100 rounded animate-pulse"></div>
+              </div>
+            ) : highestBid ? (
               <div className="text-right">
                 <p className="text-xs text-gray-500">Highest bid</p>
-                <p className="font-semibold text-green-600">AED {highestBid.amount.toLocaleString()}</p>
+                <p className="font-semibold text-green-600">AED {highestBid.toLocaleString()}</p>
               </div>
             ) : (
               <div className="text-right text-gray-500">

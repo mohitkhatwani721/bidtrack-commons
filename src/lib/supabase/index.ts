@@ -24,3 +24,9 @@ export {
   deleteProfile,
   ensureProfilesTable
 } from './profiles';
+
+// Re-export product related functions
+export {
+  getAllProducts,
+  getProductById
+} from './products';

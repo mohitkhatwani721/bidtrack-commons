@@ -1,6 +1,5 @@
 
 import { useEffect } from "react";
-import { products } from "@/lib/data";
 import ProductGrid from "@/components/product/ProductGrid";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
@@ -28,7 +27,7 @@ const Products = () => {
             <AuctionTimer />
           </div>
           
-          <ProductGrid products={products} />
+          <ProductGrid />
         </div>
       </main>
       
