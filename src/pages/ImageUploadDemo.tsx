@@ -9,7 +9,7 @@ const ImageUploadDemo = () => {
   const [uploadedImageInfo, setUploadedImageInfo] = useState<{publicId: string, url: string} | null>(null);
   
   const handleImageUploaded = (publicId: string, url: string) => {
-    console.log("Image uploaded:", { publicId, url });
+    console.log("Image upload successful:", { publicId, url });
     setUploadedImageInfo({ publicId, url });
   };
   
