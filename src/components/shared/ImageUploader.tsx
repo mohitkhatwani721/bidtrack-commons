@@ -59,6 +59,9 @@ const ImageUploader = ({
         });
       }, 500);
       
+      console.log("Starting upload with preset:", CLOUDINARY_UPLOAD_PRESET);
+      console.log("Product ID for upload:", productId || "none");
+      
       // Pass the product ID with the upload if available
       const publicId = await uploadToCloudinary(file, productId);
       

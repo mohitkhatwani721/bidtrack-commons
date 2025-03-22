@@ -51,10 +51,10 @@ export const uploadToCloudinary = async (file: File, productId?: string): Promis
     const formData = new FormData();
     formData.append('file', file);
     
-    // For unsigned uploads using upload preset
+    // Apply the upload preset (this determines if it's signed or unsigned)
     formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
     
-    // Set the folder to asset/bid as specified in your preset settings
+    // Set the folder path - this should match what's in your preset settings
     formData.append('folder', 'asset/bid');
     
     // If we have a product ID, use it in the public_id to create an association
@@ -65,9 +65,11 @@ export const uploadToCloudinary = async (file: File, productId?: string): Promis
       console.log(`Associating image with product ID: ${productId}`);
     }
 
+    // Define the upload URL
     const uploadUrl = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`;
     console.log(`Uploading to: ${uploadUrl}`);
     
+    // Send the upload request to Cloudinary
     const response = await fetch(uploadUrl, {
       method: 'POST',
       body: formData,
