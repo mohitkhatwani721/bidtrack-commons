@@ -2,21 +2,7 @@
 import { toast } from "sonner";
 import { supabase } from "./client";
 import type { Product } from "@/lib/types";
-import { getRelevantPlaceholder } from "@/utils/imageUtils";
-
-// Better handling for Samsung URLs
-const sanitizeSamsungUrl = (url: string): string => {
-  if (!url) return url;
-  
-  if (url.includes('samsung.com')) {
-    // Samsung URLs often break with query parameters
-    const cleanUrl = url.split('?')[0];
-    console.log(`Sanitized Samsung URL: ${url} -> ${cleanUrl}`);
-    return cleanUrl;
-  }
-  
-  return url;
-};
+import { getRelevantPlaceholder, sanitizeSamsungUrl } from "@/utils/imageUtils";
 
 // Get all products from Supabase
 export const getAllProducts = async (): Promise<Product[]> => {

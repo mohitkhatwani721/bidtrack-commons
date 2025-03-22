@@ -7,7 +7,8 @@ import {
   generateAdditionalImages, 
   optimizeImageUrl, 
   preloadImages,
-  generateLowQualityImagePlaceholder
+  generateLowQualityImagePlaceholder,
+  sanitizeSamsungUrl
 } from "@/utils/imageUtils";
 import { toast } from "sonner";
 
@@ -16,25 +17,11 @@ interface ProductImageGalleryProps {
 }
 
 const ProductImageGallery = ({ product }: ProductImageGalleryProps) => {
-  // Better sanitize function for Samsung URLs
-  const sanitizeUrl = (url: string): string => {
-    if (!url) return url;
-    
-    // Samsung URLs often break with query parameters
-    if (url.includes('samsung.com') && url.includes('?')) {
-      const cleanUrl = url.split('?')[0];
-      console.log(`Sanitizing Samsung URL: ${url} -> ${cleanUrl}`);
-      return cleanUrl;
-    }
-    
-    return url;
-  };
-
   // Process the main image URL first
   const mainImageRaw = product.imageUrl;
   console.log("Original main image:", mainImageRaw);
   
-  const mainImage = mainImageRaw ? sanitizeUrl(mainImageRaw) : getRelevantPlaceholder(product.name);
+  const mainImage = mainImageRaw ? sanitizeSamsungUrl(mainImageRaw) : getRelevantPlaceholder(product.name);
   console.log("Processed main image:", mainImage);
   
   // Generate additional relevant images for thumbnails based on product type
@@ -83,16 +70,15 @@ const ProductImageGallery = ({ product }: ProductImageGalleryProps) => {
       return fallbackImage;
     }
     
-    // Sanitize URL first (especially important for Samsung)
-    const sanitizedUrl = sanitizeUrl(url);
-    
-    // For Samsung URLs, use the sanitized URL without optimization 
-    if (sanitizedUrl.includes('samsung.com')) {
+    // Sanitize Samsung URLs (most important fix)
+    if (url.includes('samsung.com')) {
+      const sanitizedUrl = sanitizeSamsungUrl(url);
+      console.log(`Using sanitized Samsung URL: ${sanitizedUrl}`);
       return sanitizedUrl;
     }
     
     // For other URLs, use optimization
-    return optimizeImageUrl(sanitizedUrl, url === activeImage);
+    return optimizeImageUrl(url, url === activeImage);
   };
   
   // Load low-quality placeholders first
@@ -102,7 +88,7 @@ const ProductImageGallery = ({ product }: ProductImageGalleryProps) => {
         const placeholderPromises = productImages.map(async (image) => {
           try {
             // Sanitize URL before generating placeholder
-            const sanitizedImage = sanitizeUrl(image);
+            const sanitizedImage = sanitizeSamsungUrl(image);
             const placeholder = await generateLowQualityImagePlaceholder(sanitizedImage);
             if (placeholder && isMounted.current) {
               setPlaceholders((prev) => ({
@@ -133,7 +119,7 @@ const ProductImageGallery = ({ product }: ProductImageGalleryProps) => {
     const loadImages = async () => {
       try {
         // Sanitize all URLs before preloading
-        const sanitizedImages = productImages.map(img => sanitizeUrl(img));
+        const sanitizedImages = productImages.map(img => sanitizeSamsungUrl(img));
         
         const loadStatus = await preloadImages(sanitizedImages);
         if (isMounted.current) {
