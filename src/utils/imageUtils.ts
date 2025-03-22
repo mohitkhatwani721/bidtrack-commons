@@ -1,3 +1,4 @@
+
 /**
  * Utility functions for handling product images
  */
@@ -91,8 +92,30 @@ const clearExpiredCache = (): void => {
   }
 };
 
+// Check if an image URL is valid
+const isValidImageUrl = (url: string): boolean => {
+  if (!url || typeof url !== 'string') return false;
+  
+  // Check if it's a local asset (which is always valid)
+  if (url.startsWith('/')) return true;
+  
+  // Check if it looks like a valid URL
+  try {
+    new URL(url);
+    return true;
+  } catch (e) {
+    return false;
+  }
+};
+
 // Convert an image to a low-quality data URL for quick loading
 export const generateLowQualityImagePlaceholder = async (url: string): Promise<string | null> => {
+  // Check if URL is valid
+  if (!isValidImageUrl(url)) {
+    console.warn(`Invalid image URL: ${url}`);
+    return null;
+  }
+  
   // Check cache first
   const cache = getImageDataCache();
   const cacheKey = `${url}_low`;
@@ -102,9 +125,10 @@ export const generateLowQualityImagePlaceholder = async (url: string): Promise<s
   }
   
   try {
-    // Handle local URLs
+    // Handle local URLs differently
     if (url.startsWith('/')) {
-      return null;
+      // For local images, just return the URL as we don't need to optimize
+      return url;
     }
     
     // Use a smaller, lower quality version for the placeholder
@@ -115,7 +139,14 @@ export const generateLowQualityImagePlaceholder = async (url: string): Promise<s
       img.crossOrigin = 'anonymous';
       img.src = optimizedUrl;
       
+      // Set a timeout to prevent hanging on slow-loading images
+      const timeout = setTimeout(() => {
+        console.warn(`Placeholder generation timed out for: ${url}`);
+        resolve(null);
+      }, 5000);
+      
       img.onload = () => {
+        clearTimeout(timeout);
         try {
           // Create a small canvas to generate the low-res placeholder
           const canvas = document.createElement('canvas');
@@ -150,6 +181,8 @@ export const generateLowQualityImagePlaceholder = async (url: string): Promise<s
       };
       
       img.onerror = () => {
+        clearTimeout(timeout);
+        console.warn(`Failed to load image for placeholder: ${url}`);
         resolve(null);
       };
     });
@@ -167,8 +200,13 @@ export const optimizeImageUrl = (
   height?: number,
   quality: number = 80
 ): string => {
-  // Return original URL for non-string URLs or local assets
-  if (!url || typeof url !== 'string' || url.startsWith('/')) {
+  // Return original URL for invalid URLs or local assets
+  if (!isValidImageUrl(url)) {
+    console.warn(`Invalid image URL being optimized: ${url}`);
+    return getRelevantPlaceholder("default");
+  }
+  
+  if (url.startsWith('/')) {
     return url;
   }
   
@@ -191,13 +229,14 @@ export const optimizeImageUrl = (
     const widthParam = `w=${optimizedWidth}`;
     const qualityParam = `q=${quality}`; 
     const fitParam = 'fit=max'; // Ensures that the image won't be cropped
+    const formatParam = 'auto=format'; // Let Unsplash choose the best format
     
     // Add or replace width parameter
     if (hasParams) {
       if (url.includes('w=')) {
         optimizedUrl = url.replace(/w=\d+/, widthParam);
       } else {
-        optimizedUrl = `${url}&${widthParam}&${qualityParam}&${fitParam}`;
+        optimizedUrl = `${url}&${widthParam}&${qualityParam}&${fitParam}&${formatParam}`;
       }
       
       // Replace quality if it exists
@@ -205,7 +244,7 @@ export const optimizeImageUrl = (
         optimizedUrl = optimizedUrl.replace(/q=\d+/, qualityParam);
       }
     } else {
-      optimizedUrl = `${url}?${widthParam}&${qualityParam}&${fitParam}`;
+      optimizedUrl = `${url}?${widthParam}&${qualityParam}&${fitParam}&${formatParam}`;
     }
   } else if (url.includes('images.samsung.com')) {
     // Optimize Samsung images if they support similar parameters
@@ -233,22 +272,39 @@ export const preloadImages = (urls: string[]): Promise<Record<string, boolean>> 
   // Create a map to track which images are loaded
   const loadStatus: Record<string, boolean> = {};
   
-  const imagePromises = urls.map(
+  // Filter out invalid URLs
+  const validUrls = urls.filter(url => isValidImageUrl(url));
+  
+  if (validUrls.length < urls.length) {
+    console.warn(`Filtered out ${urls.length - validUrls.length} invalid image URLs`);
+  }
+  
+  const imagePromises = validUrls.map(
     (url) =>
       new Promise<void>((resolve) => {
-        // Generate low-quality placeholder asynchronously
+        // Generate low-quality placeholder asynchronously (don't wait for it)
         generateLowQualityImagePlaceholder(url).catch(() => null);
         
         const img = new Image();
         const optimizedUrl = optimizeImageUrl(url);
         img.src = optimizedUrl;
         
+        // Set a timeout to prevent hanging on slow-loading images
+        const timeout = setTimeout(() => {
+          console.warn(`Image preload timed out for: ${url}`);
+          loadStatus[url] = false;
+          resolve();
+        }, 10000); // 10 seconds timeout
+        
         img.onload = () => {
+          clearTimeout(timeout);
           loadStatus[url] = true;
           resolve();
         };
         
         img.onerror = () => {
+          clearTimeout(timeout);
+          console.warn(`Failed to preload image: ${url}`);
           loadStatus[url] = false;
           resolve();
         };
@@ -288,8 +344,13 @@ export const generateAdditionalImages = (productName: string, mainImage: string)
   const additionalImages = [];
   const lowerName = productName.toLowerCase();
   
-  // Always include the main image first
-  additionalImages.push(mainImage);
+  // Always include the main image first if it's valid
+  if (isValidImageUrl(mainImage)) {
+    additionalImages.push(mainImage);
+  } else {
+    // If main image is invalid, use a relevant placeholder instead
+    additionalImages.push(getRelevantPlaceholder(productName));
+  }
   
   // Add category-specific additional images
   if (lowerName.includes("refrigerator") || lowerName.includes("fridge")) {

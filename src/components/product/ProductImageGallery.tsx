@@ -10,6 +10,7 @@ import {
   preloadImages,
   generateLowQualityImagePlaceholder
 } from "@/utils/imageUtils";
+import { toast } from "sonner";
 
 interface ProductImageGalleryProps {
   product: Product;
@@ -24,22 +25,54 @@ const ProductImageGallery = ({ product }: ProductImageGalleryProps) => {
   const [activeImage, setActiveImage] = useState<string>(productImages[0]);
   const [imagesLoaded, setImagesLoaded] = useState<Record<string, boolean>>({});
   const [placeholders, setPlaceholders] = useState<Record<string, string>>({});
+  const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
   const isMounted = useRef(true);
+  
+  // Improved error handling for image loading
+  const handleImageError = (url: string) => {
+    console.log(`Error loading image: ${url}`);
+    setImageErrors(prev => ({ ...prev, [url]: true }));
+    
+    // If the main image failed to load, use fallback
+    if (url === activeImage) {
+      setActiveImage(fallbackImage);
+      toast.error("Unable to load product image. Using placeholder instead.", {
+        id: "image-error",
+        duration: 3000
+      });
+    }
+  };
+  
+  // Get appropriate image source with fallbacks
+  const getImageSource = (url: string) => {
+    if (imageErrors[url]) {
+      return fallbackImage;
+    }
+    return optimizeImageUrl(url, url === activeImage);
+  };
   
   // Load low-quality placeholders first
   useEffect(() => {
     const loadPlaceholders = async () => {
-      const placeholderPromises = productImages.map(async (image) => {
-        const placeholder = await generateLowQualityImagePlaceholder(image);
-        if (placeholder && isMounted.current) {
-          setPlaceholders((prev) => ({
-            ...prev,
-            [image]: placeholder
-          }));
-        }
-      });
-      
-      await Promise.all(placeholderPromises);
+      try {
+        const placeholderPromises = productImages.map(async (image) => {
+          try {
+            const placeholder = await generateLowQualityImagePlaceholder(image);
+            if (placeholder && isMounted.current) {
+              setPlaceholders((prev) => ({
+                ...prev,
+                [image]: placeholder
+              }));
+            }
+          } catch (error) {
+            console.error(`Error generating placeholder for ${image}:`, error);
+          }
+        });
+        
+        await Promise.all(placeholderPromises);
+      } catch (error) {
+        console.error("Error loading placeholders:", error);
+      }
     };
     
     loadPlaceholders();
@@ -52,9 +85,18 @@ const ProductImageGallery = ({ product }: ProductImageGalleryProps) => {
   // Preload all images with full quality
   useEffect(() => {
     const loadImages = async () => {
-      const loadStatus = await preloadImages(productImages);
-      if (isMounted.current) {
-        setImagesLoaded(loadStatus);
+      try {
+        const loadStatus = await preloadImages(productImages);
+        if (isMounted.current) {
+          setImagesLoaded(loadStatus);
+          
+          // Check if main image loaded, if not switch to fallback
+          if (loadStatus[activeImage] === false) {
+            handleImageError(activeImage);
+          }
+        }
+      } catch (error) {
+        console.error("Error preloading images:", error);
       }
     };
     
@@ -63,7 +105,7 @@ const ProductImageGallery = ({ product }: ProductImageGalleryProps) => {
     return () => {
       isMounted.current = false;
     };
-  }, [productImages]);
+  }, [productImages, activeImage]);
   
   return (
     <div className="space-y-6">
@@ -74,7 +116,7 @@ const ProductImageGallery = ({ product }: ProductImageGalleryProps) => {
         transition={{ duration: 0.5 }}
       >
         {/* Show low-quality placeholder first */}
-        {placeholders[activeImage] && !imagesLoaded[activeImage] && (
+        {placeholders[activeImage] && !imagesLoaded[activeImage] && !imageErrors[activeImage] && (
           <div className="absolute inset-0 flex items-center justify-center bg-white">
             <img 
               src={placeholders[activeImage]} 
@@ -89,23 +131,19 @@ const ProductImageGallery = ({ product }: ProductImageGalleryProps) => {
         )}
         
         {/* Show loading skeleton if no placeholder is available */}
-        {!placeholders[activeImage] && !imagesLoaded[activeImage] && (
+        {!placeholders[activeImage] && !imagesLoaded[activeImage] && !imageErrors[activeImage] && (
           <div className="absolute inset-0 bg-gray-100 animate-pulse" />
         )}
         
         <img
-          src={optimizeImageUrl(activeImage, true)}
+          src={getImageSource(activeImage)}
           alt={product.name}
           className="h-full w-full object-contain p-6 transition-opacity duration-300"
           style={{ 
-            opacity: imagesLoaded[activeImage] ? 1 : 0 
+            opacity: imagesLoaded[activeImage] && !imageErrors[activeImage] ? 1 : 0 
           }}
           loading="eager" // Load main product image immediately
-          onError={(e) => {
-            const target = e.target as HTMLImageElement;
-            target.src = fallbackImage;
-            setActiveImage(fallbackImage);
-          }}
+          onError={() => handleImageError(activeImage)}
         />
         
         <div className="absolute top-4 left-4">
@@ -123,10 +161,10 @@ const ProductImageGallery = ({ product }: ProductImageGalleryProps) => {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, delay: 0.1 * i }}
-            onClick={() => setActiveImage(image)}
+            onClick={() => !imageErrors[image] && setActiveImage(image)}
           >
             {/* Show low-quality placeholder first */}
-            {placeholders[image] && !imagesLoaded[image] && (
+            {placeholders[image] && !imagesLoaded[image] && !imageErrors[image] && (
               <div className="absolute inset-0 flex items-center justify-center">
                 <img 
                   src={placeholders[image]} 
@@ -141,22 +179,19 @@ const ProductImageGallery = ({ product }: ProductImageGalleryProps) => {
             )}
             
             {/* Show loading skeleton if no placeholder is available */}
-            {!placeholders[image] && !imagesLoaded[image] && (
+            {!placeholders[image] && !imagesLoaded[image] && !imageErrors[image] && (
               <div className="absolute inset-0 bg-gray-100 animate-pulse" />
             )}
             
             <img 
-              src={optimizeImageUrl(image, false)}
+              src={getImageSource(image)}
               alt={`${product.name} view ${i + 1}`}
               className="h-full w-full object-contain p-2 transition-opacity duration-300"
               style={{ 
-                opacity: imagesLoaded[image] ? 1 : 0 
+                opacity: imagesLoaded[image] && !imageErrors[image] ? 1 : 0 
               }}
               loading="lazy" // Lazy load thumbnails
-              onError={(e) => {
-                const target = e.target as HTMLImageElement;
-                target.src = fallbackImage;
-              }}
+              onError={() => handleImageError(image)}
             />
           </motion.div>
         ))}
@@ -166,4 +201,3 @@ const ProductImageGallery = ({ product }: ProductImageGalleryProps) => {
 };
 
 export default ProductImageGallery;
-
