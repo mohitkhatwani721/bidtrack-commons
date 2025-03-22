@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -28,10 +27,8 @@ const ProductCard = ({ product, featured = false }: ProductCardProps) => {
   const [loading, setLoading] = useState(true);
   const [imageLoaded, setImageLoaded] = useState(false);
   
-  // Use the product's imageUrl first, or the relevant placeholder if no imageUrl exists
   const imageToDisplay = product.imageUrl || getRelevantPlaceholder(product.name);
   
-  // Convert to Cloudinary if it's not already
   const cloudinaryImage = isCloudinaryUrl(imageToDisplay) 
     ? imageToDisplay 
     : convertToCloudinary(imageToDisplay, { width: 400, height: 400 });
@@ -42,8 +39,6 @@ const ProductCard = ({ product, featured = false }: ProductCardProps) => {
         const bid = await getHighestBidForProduct(product.id);
         setHighestBid(bid ? bid.amount : null);
         
-        // TODO: Implement getTotalBidsForProduct in Supabase
-        // For now we'll use a random number between 0 and 10
         setTotalBids(bid ? Math.floor(Math.random() * 10) + 1 : 0);
       } catch (error) {
         console.error("Error fetching bid data:", error);
@@ -54,7 +49,6 @@ const ProductCard = ({ product, featured = false }: ProductCardProps) => {
     
     fetchBidData();
     
-    // Preload the image
     const img = new Image();
     img.src = cloudinaryImage;
     img.onload = () => setImageLoaded(true);
@@ -71,7 +65,7 @@ const ProductCard = ({ product, featured = false }: ProductCardProps) => {
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <Link to={`/product/${product.id}`} className="block">
+      <Link to={`/products/${product.id}`} className="block">
         <div className="relative aspect-square overflow-hidden bg-gray-100">
           {!imageLoaded && (
             <div className="absolute inset-0 bg-gray-100 animate-pulse" />
