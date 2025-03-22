@@ -23,8 +23,12 @@ const ProductGrid = ({ initialProducts }: ProductGridProps) => {
   const [loading, setLoading] = useState(!initialProducts);
   const [mounted, setMounted] = useState(false);
 
-  // Make sure we have a valid "all" zone if zones array is empty
-  const zones = ["all", ...new Set(products.map(product => product.zone || "unknown"))];
+  // Make sure we have a valid "all" zone and never use empty strings for zones
+  const zones = ["all", ...new Set(products.map(product => {
+    // Always return a non-empty string for zones
+    const zone = product.zone || "unknown";
+    return zone.trim() === "" ? "unknown" : zone;
+  }))];
 
   useEffect(() => {
     setMounted(true);
@@ -97,8 +101,8 @@ const ProductGrid = ({ initialProducts }: ProductGridProps) => {
           </SelectTrigger>
           <SelectContent>
             {zones.map(zone => (
-              <SelectItem key={zone} value={zone || "unknown"}>
-                {zone === "all" ? "All Zones" : (zone || "Unknown")}
+              <SelectItem key={zone} value={zone}>
+                {zone === "all" ? "All Zones" : zone}
               </SelectItem>
             ))}
           </SelectContent>
