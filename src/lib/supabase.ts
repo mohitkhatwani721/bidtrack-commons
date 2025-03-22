@@ -1,26 +1,25 @@
-
 import { createClient } from '@supabase/supabase-js';
 import { toast } from 'sonner';
 
 // Initialize the Supabase client with your project credentials
-const supabaseUrl = 'https://tkknfvvthafcajjnqksp.supabase.co';
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRra25mdnZ0aGFmY2Fqam5xa3NwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjE3MjM1OTIsImV4cCI6MjAzNzI5OTU5Mn0.8R1TiIQUHPF38lbYGe6RFtQw-dPEp4iasqGhfkQKkAg';
+// Replace these with your actual Supabase project credentials
+const supabaseUrl = 'YOUR_SUPABASE_URL';
+const supabaseAnonKey = 'YOUR_SUPABASE_ANON_KEY';
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 // Helper function to check if Supabase is properly configured
 export const isSupabaseConfigured = () => {
   if (
-    supabaseUrl === 'https://tkknfvvthafcajjnqksp.supabase.co' &&
-    supabaseAnonKey.startsWith('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9')
+    supabaseUrl === 'YOUR_SUPABASE_URL' ||
+    supabaseAnonKey === 'YOUR_SUPABASE_ANON_KEY'
   ) {
-    // These look like valid credentials but we need to check connection
-    return true;
+    toast.error('Supabase is not configured properly. Please update your credentials in src/lib/supabase.ts');
+    console.error('Supabase is not configured properly. Please update your credentials in src/lib/supabase.ts');
+    return false;
   }
   
-  toast.error('Supabase is not configured properly. Please check your credentials.');
-  console.error('Supabase is not configured properly. Please check your credentials.');
-  return false;
+  return true;
 };
 
 // Check if Supabase connection has been established
