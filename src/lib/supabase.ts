@@ -11,8 +11,8 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 // Helper function to check if Supabase is properly configured
 export const isSupabaseConfigured = () => {
   if (
-    supabaseUrl === 'YOUR_SUPABASE_URL' ||
-    supabaseAnonKey === 'YOUR_SUPABASE_ANON_KEY'
+    !supabaseUrl || supabaseUrl === '' ||
+    !supabaseAnonKey || supabaseAnonKey === ''
   ) {
     toast.error('Supabase is not configured properly. Please update your credentials in src/lib/supabase.ts');
     console.error('Supabase is not configured properly. Please update your credentials in src/lib/supabase.ts');
