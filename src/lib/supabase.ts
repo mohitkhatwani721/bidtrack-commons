@@ -1,10 +1,10 @@
+
 import { createClient } from '@supabase/supabase-js';
 import { toast } from 'sonner';
 
 // Initialize the Supabase client with your project credentials
-// Replace these with your actual Supabase project credentials
-const supabaseUrl = 'YOUR_SUPABASE_URL';
-const supabaseAnonKey = 'YOUR_SUPABASE_ANON_KEY';
+const supabaseUrl = 'https://utpvrfvfbbjadiyajwon.supabase.co';
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV0cHZyZnZmYmJqYWRpeWFqd29uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDI0NzUxMTYsImV4cCI6MjA1ODA1MTExNn0.G-l2scaIXAQIH4jA94jKvBKqitRLu5gKTCq-RxTaylM';
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
