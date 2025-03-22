@@ -2,7 +2,9 @@
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { TimerIcon } from "lucide-react";
-import { getRemainingTime, isAuctionActive, auctionSettings } from "@/lib/data";
+import { AuctionSettings } from "@/lib/types";
+import { getAuctionSettings } from "@/lib/supabase";
+import Spinner from "@/components/ui/loading/Spinner";
 
 interface AuctionTimerProps {
   className?: string;
@@ -10,30 +12,65 @@ interface AuctionTimerProps {
 }
 
 const AuctionTimer = ({ className, compact = false }: AuctionTimerProps) => {
-  const [remainingTime, setRemainingTime] = useState(getRemainingTime());
+  const [remainingTime, setRemainingTime] = useState(0);
   const [status, setStatus] = useState<"not-started" | "active" | "ended">("not-started");
+  const [settings, setSettings] = useState<AuctionSettings | null>(null);
+  const [loading, setLoading] = useState(true);
   
   useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const auctionSettings = await getAuctionSettings();
+        setSettings(auctionSettings);
+        setLoading(false);
+      } catch (error) {
+        console.error("Error fetching auction settings:", error);
+        setLoading(false);
+      }
+    };
+    
+    fetchSettings();
+  }, []);
+  
+  useEffect(() => {
+    if (!settings) return;
+    
+    const calculateRemainingTime = () => {
+      const now = new Date();
+      
+      if (now < settings.startDate) {
+        // Auction hasn't started yet
+        return settings.startDate.getTime() - now.getTime();
+      } else if (now <= settings.endDate) {
+        // Auction is active
+        return settings.endDate.getTime() - now.getTime();
+      } else {
+        // Auction has ended
+        return 0;
+      }
+    };
+    
     const calculateStatus = () => {
       const now = new Date();
-      if (now < auctionSettings.startDate) {
+      if (now < settings.startDate) {
         setStatus("not-started");
-      } else if (now <= auctionSettings.endDate) {
+      } else if (now <= settings.endDate) {
         setStatus("active");
       } else {
         setStatus("ended");
       }
     };
     
+    setRemainingTime(calculateRemainingTime());
     calculateStatus();
     
     const timer = setInterval(() => {
-      setRemainingTime(getRemainingTime());
+      setRemainingTime(calculateRemainingTime());
       calculateStatus();
     }, 1000);
     
     return () => clearInterval(timer);
-  }, []);
+  }, [settings]);
   
   const formatTime = () => {
     if (remainingTime <= 0) {
@@ -59,6 +96,15 @@ const AuctionTimer = ({ className, compact = false }: AuctionTimerProps) => {
       return "Auction has ended";
     }
   };
+  
+  if (loading) {
+    return (
+      <div className={cn("rounded-lg border p-4 bg-white flex justify-center items-center", className)}>
+        <Spinner size="sm" />
+        <span className="ml-2 text-sm">Loading auction details...</span>
+      </div>
+    );
+  }
   
   if (compact) {
     return (

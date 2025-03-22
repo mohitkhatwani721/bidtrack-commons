@@ -1,7 +1,11 @@
+
 import { toast } from 'sonner';
 import { supabase } from './client';
 import { isSupabaseConfigured, testSupabaseConnection, handleSupabaseError } from './utils';
+import { getAuctionSettings } from './admin';
+import { Bid } from '@/lib/types';
 
+// Get all bids for a specific product from Supabase
 export const getBidsForProduct = async (productId: string) => {
   if (!isSupabaseConfigured()) {
     toast.error('Supabase is not configured. Please connect your Supabase project first.');
@@ -9,7 +13,6 @@ export const getBidsForProduct = async (productId: string) => {
   }
   
   try {
-    // Test connection first (only once per request)
     const isConnected = await testSupabaseConnection();
     if (!isConnected) {
       return [];
@@ -23,7 +26,6 @@ export const getBidsForProduct = async (productId: string) => {
       
     if (error) throw error;
     
-    // Transform to match our Bid interface
     return data.map(bid => ({
       id: bid.id,
       productId: bid.product_id,
@@ -36,6 +38,7 @@ export const getBidsForProduct = async (productId: string) => {
   }
 };
 
+// Get all bids for a specific user from Supabase
 export const getUserBids = async (userEmail: string) => {
   if (!isSupabaseConfigured()) {
     toast.error('Supabase is not configured. Please connect your Supabase project first.');
@@ -43,13 +46,11 @@ export const getUserBids = async (userEmail: string) => {
   }
   
   try {
-    // Test connection once (minimizing redundant checks)
     const isConnected = await testSupabaseConnection();
     if (!isConnected) {
       return [];
     }
     
-    // Optimize query to fetch all data in a single request
     const { data, error } = await supabase
       .from('bids')
       .select('*, products(*)')
@@ -58,7 +59,7 @@ export const getUserBids = async (userEmail: string) => {
       
     if (error) throw error;
     
-    // Transform to match our Bid interface with product details
+    // Transform data to match our Bid interface with product details
     return data.map(bid => ({
       id: bid.id,
       productId: bid.product_id,
@@ -82,13 +83,18 @@ export const getUserBids = async (userEmail: string) => {
   }
 };
 
+// Get the highest bid for a product from Supabase
 export const getHighestBidForProduct = async (productId: string) => {
   if (!isSupabaseConfigured()) {
     return null;
   }
   
   try {
-    // Minimize checking connection for performance
+    const isConnected = await testSupabaseConnection();
+    if (!isConnected) {
+      return null;
+    }
+    
     const { data, error } = await supabase
       .from('bids')
       .select('*')
@@ -97,91 +103,78 @@ export const getHighestBidForProduct = async (productId: string) => {
       .limit(1);
       
     if (error) throw error;
-    if (!data || data.length === 0) return null;
     
-    return {
-      id: data[0].id,
-      productId: data[0].product_id,
-      userEmail: data[0].user_email,
-      amount: data[0].amount,
-      timestamp: new Date(data[0].created_at)
-    };
+    if (data && data.length > 0) {
+      return {
+        id: data[0].id,
+        productId: data[0].product_id,
+        userEmail: data[0].user_email,
+        amount: data[0].amount,
+        timestamp: new Date(data[0].created_at)
+      };
+    }
+    
+    return null;
   } catch (error) {
     console.error('Error fetching highest bid:', error);
     return null;
   }
 };
 
-export const placeBidToSupabase = async (productId: string, userEmail: string, amount: number) => {
+// Place a bid to Supabase
+export const placeBidToSupabase = async (bid: Omit<Bid, 'id' | 'timestamp'>) => {
   if (!isSupabaseConfigured()) {
     toast.error('Supabase is not configured. Please connect your Supabase project first.');
     return null;
   }
   
   try {
-    // Test connection first
     const isConnected = await testSupabaseConnection();
     if (!isConnected) {
       return null;
     }
     
-    // Check if user has already bid on this product
-    const { data: existingBids, error: checkError } = await supabase
-      .from('bids')
-      .select('id')
-      .eq('product_id', productId)
-      .eq('user_email', userEmail);
-      
-    if (checkError) throw { message: 'Error checking existing bids', error: checkError };
-    
-    if (existingBids && existingBids.length > 0) {
-      toast.error('You have already placed a bid on this product');
+    // Check if auction is still active
+    const auctionSettings = await getAuctionSettings();
+    if (!auctionSettings) {
+      toast.error('Could not retrieve auction settings');
       return null;
     }
     
-    // Insert new bid
+    const now = new Date();
+    if (now < auctionSettings.startDate) {
+      toast.error('The auction has not started yet');
+      return null;
+    }
+    
+    if (now > auctionSettings.endDate) {
+      toast.error('The auction has ended. No more bids can be placed.');
+      return null;
+    }
+    
+    // Continue with placing the bid since auction is active
     const { data, error } = await supabase
       .from('bids')
       .insert([
-        { 
-          product_id: productId, 
-          user_email: userEmail, 
-          amount: amount,
-          created_at: new Date().toISOString()
+        {
+          product_id: bid.productId,
+          user_email: bid.userEmail,
+          amount: bid.amount
         }
       ])
-      .select();
+      .select()
+      .single();
       
     if (error) throw error;
     
-    if (!data || data.length === 0) {
-      toast.error('Failed to place bid');
-      return null;
-    }
-    
-    toast.success('Bid placed successfully!');
     return {
-      id: data[0].id,
-      productId: data[0].product_id,
-      userEmail: data[0].user_email,
-      amount: data[0].amount,
-      timestamp: new Date(data[0].created_at)
+      id: data.id,
+      productId: data.product_id,
+      userEmail: data.user_email,
+      amount: data.amount,
+      timestamp: new Date(data.created_at)
     };
   } catch (error) {
-    console.error('Error placing bid:', error);
-    
-    if (typeof error === 'object' && error !== null && 'message' in error) {
-      if (error.message === 'Failed to fetch' || error.code === 'NETWORK_ERROR') {
-        toast.error('Cannot connect to Supabase. Please ensure you have connected your Supabase project and have internet connection.');
-      } else if (error.code === 'PGRST301') {
-        toast.error('Supabase schema missing. Please set up your database tables.');
-      } else {
-        toast.error('Failed to place bid: ' + (error.message || 'Unknown error'));
-      }
-    } else {
-      toast.error('Failed to place bid due to an unknown error');
-    }
-    
-    return null;
+    return handleSupabaseError(error, 'Failed to place bid');
   }
 };

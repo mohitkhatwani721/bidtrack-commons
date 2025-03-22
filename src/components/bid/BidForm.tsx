@@ -1,13 +1,15 @@
+
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { ArrowRight, Lock } from "lucide-react";
+import { ArrowRight, Lock, AlertCircle } from "lucide-react";
 import { useBidForm } from "@/hooks/useBidForm";
 import { getCurrentUser, User } from "@/lib/auth";
 import AccountForm from "@/components/auth/AccountForm";
 import Spinner from "@/components/ui/loading/Spinner";
+import { getAuctionSettings } from "@/lib/supabase";
 
 interface BidFormProps {
   productId: string;
@@ -17,6 +19,9 @@ interface BidFormProps {
 const BidForm = ({ productId, startingPrice }: BidFormProps) => {
   const [showAuthForm, setShowAuthForm] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [auctionEnded, setAuctionEnded] = useState(false);
+  const [auctionNotStarted, setAuctionNotStarted] = useState(false);
+  const [isCheckingAuction, setIsCheckingAuction] = useState(true);
   
   const {
     email,
@@ -45,6 +50,29 @@ const BidForm = ({ productId, startingPrice }: BidFormProps) => {
     
     loadUser();
   }, [setEmail]);
+  
+  useEffect(() => {
+    const checkAuctionStatus = async () => {
+      setIsCheckingAuction(true);
+      try {
+        const settings = await getAuctionSettings();
+        if (settings) {
+          const now = new Date();
+          if (now > settings.endDate) {
+            setAuctionEnded(true);
+          } else if (now < settings.startDate) {
+            setAuctionNotStarted(true);
+          }
+        }
+      } catch (error) {
+        console.error("Error checking auction status:", error);
+      } finally {
+        setIsCheckingAuction(false);
+      }
+    };
+    
+    checkAuctionStatus();
+  }, []);
   
   const handleAuthSuccess = async () => {
     setShowAuthForm(false);
@@ -86,6 +114,64 @@ const BidForm = ({ productId, startingPrice }: BidFormProps) => {
             Cancel
           </Button>
         </div>
+      </motion.div>
+    );
+  }
+  
+  if (isCheckingAuction) {
+    return (
+      <motion.div
+        className="bg-white rounded-lg border p-6 flex items-center justify-center"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+      >
+        <Spinner size="md" />
+        <span className="ml-2">Checking auction status...</span>
+      </motion.div>
+    );
+  }
+  
+  if (auctionEnded) {
+    return (
+      <motion.div
+        className="bg-white rounded-lg border p-6"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+      >
+        <div className="flex items-center mb-4 text-red-600">
+          <AlertCircle className="mr-2 h-5 w-5" />
+          <h3 className="text-lg font-medium">Auction Has Ended</h3>
+        </div>
+        <p className="text-gray-600 mb-4">
+          This auction has concluded and is no longer accepting bids. Thank you for your interest.
+        </p>
+        <p className="text-sm text-gray-500">
+          For information about future auctions, please check back later.
+        </p>
+      </motion.div>
+    );
+  }
+  
+  if (auctionNotStarted) {
+    return (
+      <motion.div
+        className="bg-white rounded-lg border p-6"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+      >
+        <div className="flex items-center mb-4 text-yellow-600">
+          <AlertCircle className="mr-2 h-5 w-5" />
+          <h3 className="text-lg font-medium">Auction Has Not Started</h3>
+        </div>
+        <p className="text-gray-600 mb-4">
+          This auction has not yet begun. Please check back when the auction starts.
+        </p>
+        <p className="text-sm text-gray-500">
+          You'll be able to place bids once the auction begins.
+        </p>
       </motion.div>
     );
   }
