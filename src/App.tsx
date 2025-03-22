@@ -13,12 +13,19 @@ import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
+const isProd = import.meta.env.PROD;
+const currentEnvironment = isProd ? 'PRODUCTION' : 'STAGING';
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
       <Sonner position="top-center" />
+      {!isProd && (
+        <div className="fixed top-0 left-0 z-50 px-2 py-1 text-xs font-semibold text-white bg-yellow-600 rounded-br-md">
+          {currentEnvironment}
+        </div>
+      )}
       <BrowserRouter>
         <AnimatePresence mode="wait">
           <motion.div
