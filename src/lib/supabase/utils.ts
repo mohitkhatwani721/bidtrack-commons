@@ -2,15 +2,11 @@
 import { toast } from 'sonner';
 import { supabaseUrl, supabaseAnonKey, supabase } from './client';
 
-// Environment indicator
-const isProd = import.meta.env.PROD;
-const currentEnvironment = isProd ? 'PRODUCTION' : 'STAGING';
-
 // Helper function to check if Supabase is properly configured
 export const isSupabaseConfigured = () => {
   if (!supabaseUrl || !supabaseAnonKey) {
-    toast.error(`Supabase is not configured properly for ${currentEnvironment} environment. Please update your credentials in src/lib/supabase/client.ts`);
-    console.error(`Supabase is not configured properly for ${currentEnvironment} environment. Please update your credentials in src/lib/supabase/client.ts`);
+    toast.error("Supabase is not configured properly. Please update your credentials in src/lib/supabase/client.ts");
+    console.error("Supabase is not configured properly. Please update your credentials in src/lib/supabase/client.ts");
     return false;
   }
   
@@ -25,8 +21,8 @@ export const testSupabaseConnection = async () => {
     
     if (error) {
       if (error.message.includes('does not exist')) {
-        toast.error(`Supabase table "bids" does not exist in ${currentEnvironment} environment. Please set up your database schema.`);
-        console.error(`Supabase table "bids" does not exist in ${currentEnvironment}:`, error);
+        toast.error("Supabase table \"bids\" does not exist. Please set up your database schema.");
+        console.error("Supabase table \"bids\" does not exist:", error);
         return false;
       } else {
         throw error;
@@ -34,17 +30,17 @@ export const testSupabaseConnection = async () => {
     }
     
     // If we get here, connection is working
-    console.log(`Successfully connected to Supabase in ${currentEnvironment} environment`);
+    console.log("Successfully connected to Supabase");
     return true;
   } catch (error: any) {
-    console.error(`Supabase connection test failed in ${currentEnvironment}:`, error);
+    console.error("Supabase connection test failed:", error);
     
     if (error.message === 'Failed to fetch' || error.code === 'NETWORK_ERROR') {
-      toast.error(`Cannot connect to Supabase in ${currentEnvironment}. Please ensure you have connected your Supabase project and have internet connection.`);
+      toast.error("Cannot connect to Supabase. Please ensure you have connected your Supabase project and have internet connection.");
     } else if (error.code === 'PGRST301') {
-      toast.error(`Supabase schema missing in ${currentEnvironment}. Please set up your database tables.`);
+      toast.error("Supabase schema missing. Please set up your database tables.");
     } else {
-      toast.error(`Supabase connection error in ${currentEnvironment}: ${error.message || 'Unknown error'}`);
+      toast.error(`Supabase connection error: ${error.message || 'Unknown error'}`);
     }
     
     return false;
@@ -53,14 +49,14 @@ export const testSupabaseConnection = async () => {
 
 // Helper function to handle Supabase errors consistently
 export const handleSupabaseError = (error: any, message: string) => {
-  console.error(`${message} in ${currentEnvironment}:`, error);
+  console.error(`${message}:`, error);
   
   if (error.message === 'Failed to fetch' || error.code === 'NETWORK_ERROR') {
-    toast.error(`Cannot connect to Supabase in ${currentEnvironment}. Please ensure you have connected your Supabase project and have internet connection.`);
+    toast.error("Cannot connect to Supabase. Please ensure you have connected your Supabase project and have internet connection.");
   } else if (error.code === 'PGRST301') {
-    toast.error(`Supabase schema missing in ${currentEnvironment}. Please set up your database tables.`);
+    toast.error("Supabase schema missing. Please set up your database tables.");
   } else {
-    toast.error(`${message} in ${currentEnvironment}`);
+    toast.error(message);
   }
   
   return [];

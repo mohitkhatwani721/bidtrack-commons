@@ -3,25 +3,11 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
-// Initialize the Supabase client based on environment
-const isProd = import.meta.env.PROD; // True in production, false in development
-
-// Production environment credentials
-const PROD_SUPABASE_URL = "https://utpvrfvfbbjadiyajwon.supabase.co";
-const PROD_SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV0cHZyZnZmYmJqYWRpeWFqd29uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDI0NzUxMTYsImV4cCI6MjA1ODA1MTExNn0.G-l2scaIXAQIH4jA94jKvBKqitRLu5gKTCq-RxTaylM";
-
-// Staging environment credentials - can be updated as needed
-const STAGING_SUPABASE_URL = "https://utpvrfvfbbjadiyajwon.supabase.co"; // Same for now, update when staging is created
-const STAGING_SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV0cHZyZnZmYmJqYWRpeWFqd29uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDI0NzUxMTYsImV4cCI6MjA1ODA1MTExNn0.G-l2scaIXAQIH4jA94jKvBKqitRLu5gKTCq-RxTaylM"; // Same for now, update when staging is created
-
-// Select the appropriate credentials based on environment
-const SUPABASE_URL = isProd ? PROD_SUPABASE_URL : STAGING_SUPABASE_URL;
-const SUPABASE_PUBLISHABLE_KEY = isProd ? PROD_SUPABASE_PUBLISHABLE_KEY : STAGING_SUPABASE_PUBLISHABLE_KEY;
+// Supabase credentials
+const SUPABASE_URL = "https://utpvrfvfbbjadiyajwon.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV0cHZyZnZmYmJqYWRpeWFqd29uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDI0NzUxMTYsImV4cCI6MjA1ODA1MTExNn0.G-l2scaIXAQIH4jA94jKvBKqitRLu5gKTCq-RxTaylM";
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
-
-// Log which environment is being used (helpful for debugging)
-console.log(`Using Supabase integration in ${isProd ? 'PRODUCTION' : 'STAGING'} environment`);
