@@ -65,7 +65,7 @@ export const getAuctionSettings = async (): Promise<AuctionSettings | null> => {
     const { data, error } = await supabase
       .from('auction_settings')
       .select('*')
-      .single();
+      .maybeSingle();
       
     if (error) {
       // If the error is that the table doesn't exist, return default settings
@@ -77,6 +77,15 @@ export const getAuctionSettings = async (): Promise<AuctionSettings | null> => {
         };
       }
       throw error;
+    }
+    
+    if (!data) {
+      // No settings found, return default
+      return {
+        startDate: new Date(new Date().getTime() - 24 * 60 * 60 * 1000), // Started yesterday
+        endDate: new Date(new Date().getTime() + 7 * 24 * 60 * 60 * 1000), // Ends in 7 days
+        isActive: true
+      };
     }
     
     return {
@@ -174,14 +183,19 @@ export const getWinners = async () => {
 
 // Is this bid the highest for its product?
 export const isWinningBid = async (bid) => {
-  const { data, error } = await supabase
-    .from('bids')
-    .select('*')
-    .eq('product_id', bid.productId)
-    .order('amount', { ascending: false })
-    .limit(1);
+  try {
+    const { data, error } = await supabase
+      .from('bids')
+      .select('*')
+      .eq('product_id', bid.productId)
+      .order('amount', { ascending: false })
+      .limit(1);
+      
+    if (error || !data || data.length === 0) return false;
     
-  if (error || !data || data.length === 0) return false;
-  
-  return data[0].id === bid.id;
+    return data[0].id === bid.id;
+  } catch (error) {
+    console.error('Error checking winning bid:', error);
+    return false;
+  }
 };

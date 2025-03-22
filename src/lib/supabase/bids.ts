@@ -122,7 +122,7 @@ export const getHighestBidForProduct = async (productId: string) => {
 };
 
 // Place a bid to Supabase
-export const placeBidToSupabase = async (bid: Omit<Bid, 'id' | 'timestamp'>) => {
+export const placeBidToSupabase = async ({ productId, userEmail, amount }: Omit<Bid, 'id' | 'timestamp'>) => {
   if (!isSupabaseConfigured()) {
     toast.error('Supabase is not configured. Please connect your Supabase project first.');
     return null;
@@ -157,9 +157,9 @@ export const placeBidToSupabase = async (bid: Omit<Bid, 'id' | 'timestamp'>) => 
       .from('bids')
       .insert([
         {
-          product_id: bid.productId,
-          user_email: bid.userEmail,
-          amount: bid.amount
+          product_id: productId,
+          user_email: userEmail,
+          amount: amount
         }
       ])
       .select()

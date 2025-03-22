@@ -33,7 +33,14 @@ export function useBidForm({ productId, startingPrice, initialEmail = "" }: UseB
     const fetchHighestBid = async () => {
       const highestBid = await getHighestBidForProduct(productId);
       if (highestBid) {
-        setMinBidAmount(highestBid.amount > startingPrice ? highestBid.amount : startingPrice);
+        // Set minimum bid amount to highest bid amount + 10% or starting price, whichever is higher
+        const minimumIncrease = highestBid.amount * 0.01; // 1% increase
+        const newMinBid = Math.max(highestBid.amount + minimumIncrease, startingPrice);
+        setMinBidAmount(newMinBid);
+        setAmount(newMinBid.toString());
+      } else {
+        setMinBidAmount(startingPrice);
+        setAmount(startingPrice.toString());
       }
     };
     
@@ -68,18 +75,27 @@ export function useBidForm({ productId, startingPrice, initialEmail = "" }: UseB
     const currentUser = await getCurrentUser();
     const userEmail = currentUser ? currentUser.email : email;
     
-    // Place bid using Supabase - Fixed by passing a single object instead of three separate arguments
-    const bid = await placeBidToSupabase({
-      productId,
-      userEmail,
-      amount: bidAmount
-    });
-    
-    setIsSubmitting(false);
-    
-    if (bid) {
-      toast.success("Your bid has been placed successfully!");
-      setAmount(bidAmount.toString());
+    try {
+      // Place bid using Supabase
+      const bid = await placeBidToSupabase({
+        productId,
+        userEmail,
+        amount: bidAmount
+      });
+      
+      if (bid) {
+        toast.success("Your bid has been placed successfully!");
+        
+        // Refresh minimum bid after successful bid
+        const newMinBid = bidAmount * 1.01; // 1% increase
+        setMinBidAmount(newMinBid);
+        setAmount(newMinBid.toString());
+      }
+    } catch (error) {
+      console.error("Error placing bid:", error);
+      toast.error("Failed to place bid. Please try again.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 

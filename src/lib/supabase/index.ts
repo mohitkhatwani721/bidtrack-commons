@@ -40,3 +40,9 @@ export {
   getWinners,
   isWinningBid
 } from './admin';
+
+// Re-export table initialization functions
+export {
+  ensureAuctionSettingsTable,
+  initializeTables
+} from './createTables';
