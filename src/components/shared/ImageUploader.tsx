@@ -68,6 +68,12 @@ const ImageUploader = ({
     }
   };
   
+  const triggerFileInput = () => {
+    // Cast to HTMLInputElement to fix TypeScript error
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+    if (fileInput) fileInput.click();
+  };
+  
   return (
     <div className={`space-y-4 ${className}`}>
       <div className="flex items-end gap-4">
@@ -78,6 +84,7 @@ const ImageUploader = ({
             onChange={handleFileChange}
             disabled={isUploading}
             className="cursor-pointer"
+            id="file-upload"
           />
         </div>
         
@@ -85,7 +92,7 @@ const ImageUploader = ({
           type="button"
           disabled={isUploading}
           className="flex-shrink-0"
-          onClick={() => document.querySelector('input[type="file"]')?.click()}
+          onClick={triggerFileInput}
         >
           {isUploading ? (
             <>
