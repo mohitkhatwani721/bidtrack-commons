@@ -23,7 +23,7 @@ const ProductBidSection = ({ product }: ProductBidSectionProps) => {
       
       <div className="mt-4 flex justify-end">
         <Button variant="outline" size="sm" asChild>
-          <Link to="/bids" className="flex items-center">
+          <Link to="/bids" className="flex items-center text-blue-500">
             <Activity className="mr-2 h-4 w-4" />
             View All Your Bids
           </Link>

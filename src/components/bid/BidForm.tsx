@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Input } from "@/components/ui/input";
@@ -224,7 +223,7 @@ const BidForm = ({ productId, startingPrice }: BidFormProps) => {
         
         <Button 
           type="submit" 
-          className="w-full font-bold text-base py-6 bg-blue-500 hover:bg-blue-600 text-white" 
+          className="w-full font-bold text-base py-6" 
           size="lg"
           disabled={isSubmitting}
         >
