@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import ImageUploader from "@/components/shared/ImageUploader";
@@ -8,37 +8,14 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useQuery } from "@tanstack/react-query";
 import { getAllProducts } from "@/lib/supabase/products";
-import { Loader2 } from "lucide-react";
+import { Loader2, InfoIcon, HelpCircle, CheckCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { InfoIcon, HelpCircle, CheckCircle } from "lucide-react";
 import { CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_UPLOAD_PRESET } from "@/lib/cloudinary/client";
 
 const ImageUploadDemo = () => {
   const [uploadedImageInfo, setUploadedImageInfo] = useState<{publicId: string, url: string} | null>(null);
   const [selectedProductId, setSelectedProductId] = useState<string>("");
-  const [configStatus, setConfigStatus] = useState<"checking" | "valid" | "invalid" | "incomplete">("checking");
-  
-  // Check Cloudinary configuration on load
-  useEffect(() => {
-    const checkConfig = () => {
-      const hasCloudName = !!CLOUDINARY_CLOUD_NAME;
-      const hasApiKey = !!CLOUDINARY_API_KEY;
-      const hasUploadPreset = !!CLOUDINARY_UPLOAD_PRESET;
-      
-      if (hasCloudName && hasApiKey && hasUploadPreset) {
-        setConfigStatus("valid");
-        console.log("Cloudinary configuration appears valid");
-      } else if (hasCloudName && hasApiKey) {
-        setConfigStatus("incomplete");
-        console.warn("Cloudinary configuration is incomplete - missing upload preset");
-      } else {
-        setConfigStatus("invalid");
-        console.error("Missing Cloudinary configuration");
-      }
-    };
-    
-    checkConfig();
-  }, []);
+  const [configStatus, setConfigStatus] = useState<"valid" | "invalid" | "incomplete">("valid");
   
   // Fetch products for the dropdown
   const { data: products, isLoading } = useQuery({
@@ -83,7 +60,7 @@ const ImageUploadDemo = () => {
                     }</p>
                     <p><strong>Cloud Name:</strong> <code className="bg-muted px-1 rounded">{CLOUDINARY_CLOUD_NAME || "Not set"}</code></p>
                     <p><strong>API Key:</strong> <code className="bg-muted px-1 rounded">{CLOUDINARY_API_KEY ? `${CLOUDINARY_API_KEY.substring(0, 6)}...` : "Not set"}</code></p>
-                    <p><strong>Upload Preset:</strong> <code className="bg-muted px-1 rounded">{CLOUDINARY_UPLOAD_PRESET || "Not set"}</code> (Signed mode)</p>
+                    <p><strong>Upload Preset:</strong> <code className="bg-muted px-1 rounded">{CLOUDINARY_UPLOAD_PRESET || "Not set"}</code></p>
                     <p><strong>Destination Folder:</strong> <code className="bg-muted px-1 rounded">asset/bid</code></p>
                   </div>
                 </AlertDescription>

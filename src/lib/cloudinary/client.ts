@@ -51,10 +51,10 @@ export const uploadToCloudinary = async (file: File, productId?: string): Promis
     const formData = new FormData();
     formData.append('file', file);
     
-    // Apply the upload preset (this determines if it's signed or unsigned)
+    // Use upload preset for unsigned uploads
     formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
     
-    // Set the folder path - this should match what's in your preset settings
+    // Set the folder path
     formData.append('folder', 'asset/bid');
     
     // If we have a product ID, use it in the public_id to create an association
