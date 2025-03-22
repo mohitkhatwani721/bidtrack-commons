@@ -46,6 +46,8 @@ export const buildCloudinaryUrl = (
 export const uploadToCloudinary = async (file: File, productId?: string): Promise<string | null> => {
   try {
     console.log(`Starting upload to Cloudinary with preset: ${CLOUDINARY_UPLOAD_PRESET}`);
+    console.log(`Using cloud name: ${CLOUDINARY_CLOUD_NAME}`);
+    console.log(`Using API key: ${CLOUDINARY_API_KEY.substring(0, 5)}...`);
     
     const formData = new FormData();
     formData.append('file', file);
@@ -72,6 +74,7 @@ export const uploadToCloudinary = async (file: File, productId?: string): Promis
 
     if (!response.ok) {
       const errorText = await response.text();
+      console.error(`Upload failed with status ${response.status}: ${errorText}`);
       throw new Error(`Upload failed with status ${response.status}: ${errorText}`);
     }
 

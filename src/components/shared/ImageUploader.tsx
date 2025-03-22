@@ -1,17 +1,19 @@
 
 import { useState } from "react";
-import { uploadToCloudinary, buildCloudinaryUrl } from "@/lib/cloudinary/client";
+import { uploadToCloudinary, buildCloudinaryUrl, CLOUDINARY_UPLOAD_PRESET } from "@/lib/cloudinary/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Loader2, Upload, Image as ImageIcon } from "lucide-react";
+import { Loader2, Upload, Image as ImageIcon, AlertCircle } from "lucide-react";
 import { updateProductImage } from "@/lib/supabase/products";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import Spinner from "@/components/ui/loading/Spinner";
 
 interface ImageUploaderProps {
   onImageUploaded?: (publicId: string, url: string) => void;
   buttonText?: string;
   className?: string;
-  productId?: string; // Add product ID prop
+  productId?: string;
 }
 
 const ImageUploader = ({ 
@@ -22,10 +24,15 @@ const ImageUploader = ({
 }: ImageUploaderProps) => {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
   
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    
+    // Clear previous errors
+    setUploadError(null);
     
     // Check file type
     if (!file.type.startsWith('image/')) {
@@ -41,14 +48,27 @@ const ImageUploader = ({
     }
     
     setIsUploading(true);
+    setUploadProgress(10); // Start progress
     
     try {
+      // Simulate progress (since we can't get real progress from the fetch API easily)
+      const progressInterval = setInterval(() => {
+        setUploadProgress(prev => {
+          const newProgress = prev + Math.random() * 15;
+          return newProgress < 90 ? newProgress : 90; // Don't reach 100 until complete
+        });
+      }, 500);
+      
       // Pass the product ID with the upload if available
       const publicId = await uploadToCloudinary(file, productId);
+      
+      clearInterval(progressInterval);
       
       if (!publicId) {
         throw new Error("Failed to upload image");
       }
+      
+      setUploadProgress(100);
       
       // Generate the full URL from public ID
       const imageUrl = buildCloudinaryUrl(publicId, {
@@ -73,7 +93,14 @@ const ImageUploader = ({
       }
     } catch (error) {
       console.error("Error uploading image:", error);
-      toast.error("Failed to upload image. Please try again.");
+      
+      if (error instanceof Error) {
+        setUploadError(error.message);
+        toast.error(`Upload failed: ${error.message}`);
+      } else {
+        setUploadError("Unknown error occurred during upload");
+        toast.error("Failed to upload image. Please try again.");
+      }
     } finally {
       setIsUploading(false);
     }
@@ -105,8 +132,8 @@ const ImageUploader = ({
           >
             {isUploading ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Uploading...
+                <Spinner size="sm" className="mr-2" />
+                Uploading... {uploadProgress.toFixed(0)}%
               </>
             ) : (
               <>
@@ -117,6 +144,24 @@ const ImageUploader = ({
           </Button>
         </div>
       </div>
+      
+      {uploadError && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            {uploadError}
+          </AlertDescription>
+        </Alert>
+      )}
+      
+      {isUploading && (
+        <div className="w-full bg-muted rounded-full h-2.5 mt-2">
+          <div 
+            className="bg-primary h-2.5 rounded-full transition-all duration-300" 
+            style={{ width: `${uploadProgress}%` }}
+          />
+        </div>
+      )}
       
       {uploadedImage && (
         <div className="mt-4 rounded-md border border-border overflow-hidden">
@@ -133,6 +178,9 @@ const ImageUploader = ({
           <div className="flex flex-col items-center text-muted-foreground">
             <ImageIcon className="h-12 w-12 mb-2" />
             <p>No image uploaded yet</p>
+            <p className="text-xs mt-2 max-w-xs text-center">
+              Using upload preset: <span className="font-mono">{CLOUDINARY_UPLOAD_PRESET}</span>
+            </p>
           </div>
         </div>
       )}
