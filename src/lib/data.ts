@@ -42,7 +42,7 @@ export const products: Product[] = [
     quantity: 1,
     pricePerUnit: 2499.00,
     totalPrice: 2499.00,
-    imageUrl: "https://images.unsplash.com/photo-1585237017125-24baf8d7406f?q=80&w=1000&auto=format&fit=crop",
+    imageUrl: "/lovable-uploads/b0f862ff-2d78-4c70-ad25-bd7a2caf9809.png",
     description: "Bake like a professional with this 60L electric oven featuring multiple cooking modes and precise temperature control."
   },
   {
