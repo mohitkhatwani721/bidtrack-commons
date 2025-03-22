@@ -2,6 +2,7 @@
 import { toast } from "sonner";
 import { supabase } from "./client";
 import type { Product } from "@/lib/types";
+import { getRelevantPlaceholder } from "@/utils/imageUtils";
 
 // Get all products from Supabase
 export const getAllProducts = async (): Promise<Product[]> => {
@@ -15,17 +16,22 @@ export const getAllProducts = async (): Promise<Product[]> => {
       throw error;
     }
     
-    return data.map(item => ({
-      id: item.id,
-      name: item.name,
-      modelCode: item.model_code || '',
-      pricePerUnit: item.starting_price,
-      totalPrice: item.starting_price, // Default to starting price
-      quantity: 1, // Default quantity
-      imageUrl: item.image_url || '',
-      description: item.description || '',
-      zone: 'Zone 1' // Default zone since we don't have this in the DB yet
-    }));
+    return data.map(item => {
+      // Get a proper image URL, using the placeholder if needed
+      const imageUrl = item.image_url || getRelevantPlaceholder(item.name);
+      
+      return {
+        id: item.id,
+        name: item.name,
+        modelCode: item.model_code || '',
+        pricePerUnit: item.starting_price,
+        totalPrice: item.starting_price, // Default to starting price
+        quantity: 1, // Default quantity
+        imageUrl,
+        description: item.description || '',
+        zone: 'Zone 1' // Default zone since we don't have this in the DB yet
+      };
+    });
   } catch (error: any) {
     console.error("Error fetching products:", error);
     toast.error("Failed to load products");
@@ -50,6 +56,9 @@ export const getProductById = async (id: string): Promise<Product | null> => {
       return null;
     }
     
+    // Get a proper image URL, using the placeholder if needed
+    const imageUrl = data.image_url || getRelevantPlaceholder(data.name);
+    
     return {
       id: data.id,
       name: data.name,
@@ -57,7 +66,7 @@ export const getProductById = async (id: string): Promise<Product | null> => {
       pricePerUnit: data.starting_price,
       totalPrice: data.starting_price, // Default to starting price
       quantity: 1, // Default quantity
-      imageUrl: data.image_url || '',
+      imageUrl,
       description: data.description || '',
       zone: 'Zone 1' // Default zone since we don't have this in the DB yet
     };

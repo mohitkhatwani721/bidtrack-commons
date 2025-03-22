@@ -18,8 +18,8 @@ export const getRelevantPlaceholder = (productName: string): string => {
   } else if (lowerName.includes("microwave")) {
     // Updated microwave image URL to a more realistic microwave
     return "https://images.unsplash.com/photo-1574269909862-7e1d70bb8078?q=80&w=1000&auto=format&fit=crop";
-  } else if (lowerName.includes("oven")) {
-    // Added specific electric oven image
+  } else if (lowerName.includes("oven") || lowerName.includes("convection")) {
+    // Enhanced condition to also match "convection" and updated to a better electric oven image
     return "https://images.unsplash.com/photo-1585237017125-24baf8d7406f?q=80&w=1000&auto=format&fit=crop";
   } else if (lowerName.includes("soundbar") || lowerName.includes("music") || lowerName.includes("speaker")) {
     return "https://images.unsplash.com/photo-1545454675-3531b543be5d?q=80&w=1000&auto=format&fit=crop";
@@ -56,10 +56,11 @@ export const generateAdditionalImages = (productName: string, mainImage: string)
     // Updated microwave oven images to more realistic ones
     if (additionalImages.length < 3) additionalImages.push("https://images.unsplash.com/photo-1574269909862-7e1d70bb8078?q=80&w=1000&auto=format&fit=crop");
     if (additionalImages.length < 3) additionalImages.push("https://images.unsplash.com/photo-1584269600295-5b6d3e0d7b1a?q=80&w=1000&auto=format&fit=crop");
-  } else if (lowerName.includes("oven")) {
-    // Added specific electric oven images
+  } else if (lowerName.includes("oven") || lowerName.includes("convection")) {
+    // Enhanced condition to also match "convection" and added better electric oven images
     if (additionalImages.length < 3) additionalImages.push("https://images.unsplash.com/photo-1585237017125-24baf8d7406f?q=80&w=1000&auto=format&fit=crop");
     if (additionalImages.length < 3) additionalImages.push("https://images.unsplash.com/photo-1631793915944-90a0a4eef6d6?q=80&w=1000&auto=format&fit=crop");
+    if (additionalImages.length < 3) additionalImages.push("https://images.unsplash.com/photo-1482949900613-8e0d32164d8f?q=80&w=1000&auto=format&fit=crop");
   } else if (lowerName.includes("soundbar") || lowerName.includes("music") || lowerName.includes("speaker")) {
     if (additionalImages.length < 3) additionalImages.push("https://images.unsplash.com/photo-1608043152269-423dbba4e7e1?q=80&w=1000&auto=format&fit=crop");
     if (additionalImages.length < 3) additionalImages.push("https://images.unsplash.com/photo-1547592180-85f173990554?q=80&w=1000&auto=format&fit=crop");
