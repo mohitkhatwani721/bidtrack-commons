@@ -85,6 +85,7 @@ const ImageUploader = ({
           type="button"
           disabled={isUploading}
           className="flex-shrink-0"
+          onClick={() => document.querySelector('input[type="file"]')?.click()}
         >
           {isUploading ? (
             <>
