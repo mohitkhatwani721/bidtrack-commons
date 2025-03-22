@@ -6,7 +6,11 @@ import ProductDetailComponent from "@/components/product/ProductDetail";
 
 const ProductDetail = () => {
   useEffect(() => {
+    // Ensure we scroll to top when the component mounts
     window.scrollTo(0, 0);
+    
+    // Print the current route for debugging
+    console.log("Product Detail Page mounted, current path:", window.location.pathname);
   }, []);
 
   return (

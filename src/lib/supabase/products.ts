@@ -42,6 +42,9 @@ export const getAllProducts = async (): Promise<Product[]> => {
 // Get a single product by ID
 export const getProductById = async (id: string): Promise<Product | null> => {
   try {
+    console.log("Fetching product with ID:", id);
+    
+    // First try to fetch from Supabase
     const { data, error } = await supabase
       .from('products')
       .select('*')
@@ -49,10 +52,12 @@ export const getProductById = async (id: string): Promise<Product | null> => {
       .maybeSingle();
     
     if (error) {
+      console.error("Supabase error:", error);
       throw error;
     }
     
     if (!data) {
+      console.log("No product found in Supabase with ID:", id);
       return null;
     }
     

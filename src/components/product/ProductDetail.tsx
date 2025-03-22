@@ -12,35 +12,56 @@ import ProductBidSection from "./ProductBidSection";
 import ProductTabs from "./ProductTabs";
 import { getProductById } from "@/lib/supabase";
 import ProductDetailSkeleton from "@/components/ui/loading/ProductDetailSkeleton";
+import { toast } from "sonner";
+import { products } from "@/lib/data"; // Fallback to local data if Supabase fails
 
 const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
-  const [mounted, setMounted] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    setMounted(true);
-    
     const fetchProduct = async () => {
-      if (!id) return;
+      if (!id) {
+        setError("No product ID provided");
+        setLoading(false);
+        return;
+      }
       
-      setLoading(true);
-      const fetchedProduct = await getProductById(id);
-      setProduct(fetchedProduct);
-      setLoading(false);
+      try {
+        setLoading(true);
+        setError(null);
+        
+        // Try to fetch from Supabase first
+        let fetchedProduct = await getProductById(id);
+        
+        // If not found in Supabase, try local data as fallback
+        if (!fetchedProduct) {
+          console.log("Product not found in Supabase, checking local data");
+          fetchedProduct = products.find(p => p.id === id) || null;
+        }
+        
+        if (fetchedProduct) {
+          console.log("Product found:", fetchedProduct);
+          setProduct(fetchedProduct);
+        } else {
+          console.error("Product not found with ID:", id);
+          setError("Product not found");
+          toast.error("Product not found");
+        }
+      } catch (err) {
+        console.error("Error fetching product:", err);
+        setError("Failed to load product");
+        toast.error("Failed to load product details");
+      } finally {
+        setLoading(false);
+      }
     };
     
     fetchProduct();
   }, [id]);
-
-  useEffect(() => {
-    // Scroll to top when component mounts
-    window.scrollTo(0, 0);
-  }, []);
-
-  if (!mounted) return null;
 
   return (
     <div className="container mx-auto px-4 py-16 mt-8">
@@ -56,6 +77,12 @@ const ProductDetail = () => {
       
       {loading ? (
         <ProductDetailSkeleton />
+      ) : error ? (
+        <div className="text-center py-16">
+          <h2 className="text-2xl font-bold mb-4">Error Loading Product</h2>
+          <p className="text-gray-600 mb-8">{error}</p>
+          <Button onClick={() => navigate(-1)}>Go Back</Button>
+        </div>
       ) : !product ? (
         <div className="text-center py-16">
           <h2 className="text-2xl font-bold mb-4">Product Not Found</h2>
