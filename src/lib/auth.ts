@@ -64,13 +64,18 @@ export const register = async (email: string, name: string, password: string): P
   }
   
   // Create a profile record
-  await supabase.from('profiles').insert({
+  const { error: profileError } = await supabase.from('profiles').insert({
     id: user.id,
     email: user.email,
     name
   });
   
-  toast.success("Account created successfully! Check your email for verification.");
+  if (profileError) {
+    console.error("Error creating profile:", profileError);
+    // Continue anyway as this is not critical for auth
+  }
+  
+  toast.success("Account created! You can now sign in with your credentials.");
   
   return {
     id: user.id,

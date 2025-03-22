@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { register, login } from "@/lib/auth";
 import { toast } from "sonner";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Info } from "lucide-react";
 
 interface AccountFormProps {
   onSuccess?: () => void;
@@ -60,8 +62,11 @@ const AccountForm = ({ onSuccess }: AccountFormProps) => {
       
       const user = await register(registerEmail, registerName, registerPassword);
       
-      if (user && onSuccess) {
-        onSuccess();
+      if (user) {
+        // Switch to login tab after successful registration
+        setActiveTab("login");
+        setLoginEmail(registerEmail);
+        toast.info("Registration successful! Now you can login with your credentials.");
       }
     } finally {
       setIsRegistering(false);
@@ -129,6 +134,13 @@ const AccountForm = ({ onSuccess }: AccountFormProps) => {
         </TabsContent>
         
         <TabsContent value="register">
+          <Alert className="mb-4 bg-blue-50 text-blue-700 border-blue-100">
+            <Info className="h-4 w-4" />
+            <AlertDescription>
+              After registering, you'll be able to login immediately with your new credentials.
+            </AlertDescription>
+          </Alert>
+          
           <form onSubmit={handleRegister} className="space-y-4">
             <div className="space-y-2">
               <label htmlFor="register-name" className="text-sm font-medium">
