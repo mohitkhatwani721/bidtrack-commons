@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { register, login } from "@/lib/auth";
 import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Info } from "lucide-react";
+import { Eye, EyeOff, Info } from "lucide-react";
 
 interface AccountFormProps {
   onSuccess?: () => void;
@@ -19,12 +19,14 @@ const AccountForm = ({ onSuccess }: AccountFormProps) => {
   // Login form state
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   
   // Register form state
   const [registerName, setRegisterName] = useState("");
   const [registerEmail, setRegisterEmail] = useState("");
   const [registerPassword, setRegisterPassword] = useState("");
+  const [showRegisterPassword, setShowRegisterPassword] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
   
   const handleLogin = async (e: React.FormEvent) => {
@@ -106,14 +108,28 @@ const AccountForm = ({ onSuccess }: AccountFormProps) => {
               <label htmlFor="login-password" className="text-sm font-medium">
                 Password
               </label>
-              <Input
-                id="login-password"
-                type="password"
-                placeholder="••••••••"
-                value={loginPassword}
-                onChange={(e) => setLoginPassword(e.target.value)}
-                required
-              />
+              <div className="relative">
+                <Input
+                  id="login-password"
+                  type={showLoginPassword ? "text" : "password"}
+                  placeholder="••••••••"
+                  value={loginPassword}
+                  onChange={(e) => setLoginPassword(e.target.value)}
+                  required
+                />
+                <button
+                  type="button"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                  onClick={() => setShowLoginPassword(!showLoginPassword)}
+                  aria-label={showLoginPassword ? "Hide password" : "Show password"}
+                >
+                  {showLoginPassword ? (
+                    <EyeOff className="h-5 w-5" />
+                  ) : (
+                    <Eye className="h-5 w-5" />
+                  )}
+                </button>
+              </div>
             </div>
             
             <Button 
@@ -174,14 +190,28 @@ const AccountForm = ({ onSuccess }: AccountFormProps) => {
               <label htmlFor="register-password" className="text-sm font-medium">
                 Password
               </label>
-              <Input
-                id="register-password"
-                type="password"
-                placeholder="••••••••"
-                value={registerPassword}
-                onChange={(e) => setRegisterPassword(e.target.value)}
-                required
-              />
+              <div className="relative">
+                <Input
+                  id="register-password"
+                  type={showRegisterPassword ? "text" : "password"}
+                  placeholder="••••••••"
+                  value={registerPassword}
+                  onChange={(e) => setRegisterPassword(e.target.value)}
+                  required
+                />
+                <button
+                  type="button"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                  onClick={() => setShowRegisterPassword(!showRegisterPassword)}
+                  aria-label={showRegisterPassword ? "Hide password" : "Show password"}
+                >
+                  {showRegisterPassword ? (
+                    <EyeOff className="h-5 w-5" />
+                  ) : (
+                    <Eye className="h-5 w-5" />
+                  )}
+                </button>
+              </div>
               <p className="text-xs text-gray-500">
                 Password must be at least 8 characters long
               </p>
