@@ -34,6 +34,48 @@ export const getCloudinaryUrl = (
 };
 
 /**
+ * Checks if a URL is already a Cloudinary URL
+ */
+export const isCloudinaryUrl = (url: string): boolean => {
+  return url && url.includes('cloudinary.com');
+};
+
+/**
+ * Uploads an image to Cloudinary (client-side)
+ * Note: This should only be used for small images as it's client-side
+ */
+export const uploadToCloudinary = async (file: File): Promise<string | null> => {
+  if (!CLOUDINARY_CLOUD_NAME || CLOUDINARY_CLOUD_NAME === 'demo') {
+    console.error('Cloudinary cloud name not configured');
+    return null;
+  }
+
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', 'ml_default'); // Use an unsigned upload preset
+
+    const response = await fetch(
+      `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`,
+      {
+        method: 'POST',
+        body: formData,
+      }
+    );
+
+    const data = await response.json();
+    if (data.secure_url) {
+      return data.public_id; // Return the public_id for use with getCloudinaryUrl
+    } else {
+      throw new Error('Upload failed');
+    }
+  } catch (error) {
+    console.error('Error uploading to Cloudinary:', error);
+    return null;
+  }
+};
+
+/**
  * Generates a relevant placeholder image URL based on the product name.
  */
 export const getRelevantPlaceholder = (productName: string): string => {
@@ -229,5 +271,36 @@ export const generateLowQualityImagePlaceholder = async (imageUrl: string): Prom
   } catch (error) {
     console.error("Error generating LQIP:", error);
     return undefined;
+  }
+};
+
+/**
+ * Converts a non-Cloudinary URL to a Cloudinary URL for optimization
+ */
+export const convertToCloudinary = (url: string, options: {
+  width?: number;
+  height?: number;
+  quality?: number;
+} = {}): string => {
+  // Skip if already a Cloudinary URL
+  if (isCloudinaryUrl(url)) {
+    return url;
+  }
+
+  // Skip if URL is invalid or empty
+  if (!url) return url;
+
+  try {
+    // For external images, we can use Cloudinary's fetch capability
+    // This allows Cloudinary to retrieve and optimize external images
+    const fetchUrl = encodeURIComponent(url);
+    
+    const { width = 600, height = 400, quality = 80 } = options;
+    const transformations = `w_${width},h_${height},q_${quality},c_fill,f_auto`;
+    
+    return `${CLOUDINARY_BASE_URL}/${transformations}/fetch/${fetchUrl}`;
+  } catch (error) {
+    console.error("Error converting to Cloudinary URL:", error);
+    return url; // Fall back to the original URL
   }
 };

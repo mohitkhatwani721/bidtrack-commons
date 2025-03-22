@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -6,7 +7,13 @@ import { Product } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import AuctionTimer from "@/components/ui/AuctionTimer";
 import { Tag, Users } from "lucide-react";
-import { getRelevantPlaceholder, optimizeImageUrl } from "@/utils/imageUtils";
+import { 
+  getRelevantPlaceholder, 
+  optimizeImageUrl, 
+  isCloudinaryUrl, 
+  convertToCloudinary,
+  getCloudinaryUrl 
+} from "@/utils/imageUtils";
 import { getHighestBidForProduct } from "@/lib/supabase";
 
 interface ProductCardProps {
@@ -23,6 +30,11 @@ const ProductCard = ({ product, featured = false }: ProductCardProps) => {
   
   // Use the product's imageUrl first, or the relevant placeholder if no imageUrl exists
   const imageToDisplay = product.imageUrl || getRelevantPlaceholder(product.name);
+  
+  // Convert to Cloudinary if it's not already
+  const cloudinaryImage = isCloudinaryUrl(imageToDisplay) 
+    ? imageToDisplay 
+    : convertToCloudinary(imageToDisplay, { width: 400, height: 400 });
   
   useEffect(() => {
     const fetchBidData = async () => {
@@ -44,10 +56,10 @@ const ProductCard = ({ product, featured = false }: ProductCardProps) => {
     
     // Preload the image
     const img = new Image();
-    img.src = optimizeImageUrl(imageToDisplay, false);
+    img.src = cloudinaryImage;
     img.onload = () => setImageLoaded(true);
     
-  }, [product.id, imageToDisplay]);
+  }, [product.id, cloudinaryImage]);
 
   return (
     <motion.div
@@ -66,7 +78,7 @@ const ProductCard = ({ product, featured = false }: ProductCardProps) => {
           )}
           
           <img
-            src={optimizeImageUrl(imageToDisplay, false)}
+            src={cloudinaryImage}
             alt={product.name}
             className={cn(
               "h-full w-full object-cover transition-transform duration-500",
@@ -75,7 +87,7 @@ const ProductCard = ({ product, featured = false }: ProductCardProps) => {
             loading="lazy"
             onError={(e) => {
               const target = e.target as HTMLImageElement;
-              target.src = getRelevantPlaceholder(product.name);
+              target.src = getCloudinaryUrl('sample', { width: 400, height: 400 });
             }}
           />
           

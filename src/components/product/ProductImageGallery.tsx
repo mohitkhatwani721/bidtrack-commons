@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { Product } from "@/lib/types";
@@ -8,7 +9,9 @@ import {
   optimizeImageUrl, 
   preloadImages,
   generateLowQualityImagePlaceholder,
-  getCloudinaryUrl
+  getCloudinaryUrl,
+  isCloudinaryUrl,
+  convertToCloudinary
 } from "@/utils/imageUtils";
 import { toast } from "sonner";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
@@ -27,12 +30,22 @@ const ProductImageGallery = ({ product }: ProductImageGalleryProps) => {
   const mainImage = mainImageRaw || getRelevantPlaceholder(product.name);
   console.log("Processed main image:", mainImage);
   
+  // Check if the main image is already a Cloudinary URL
+  const isMainImageCloudinary = isCloudinaryUrl(mainImage);
+  console.log("Is main image Cloudinary?", isMainImageCloudinary);
+  
+  // Convert main image to Cloudinary if it's not already
+  const cloudinaryMainImage = isMainImageCloudinary 
+    ? mainImage 
+    : convertToCloudinary(mainImage, { width: 800, height: 800 });
+  console.log("Cloudinary main image:", cloudinaryMainImage);
+  
   // Generate additional relevant images for thumbnails based on product type
-  const productImages = generateAdditionalImages(product.name, mainImage);
+  const productImages = generateAdditionalImages(product.name, cloudinaryMainImage);
   console.log("Generated product images:", productImages);
   
   const fallbackImage = getCloudinaryUrl('sample', { width: 400, height: 300 });
-  const [activeImage, setActiveImage] = useState<string>(mainImage); // Use main image as initial active
+  const [activeImage, setActiveImage] = useState<string>(cloudinaryMainImage); // Use main image as initial active
   const [imagesLoaded, setImagesLoaded] = useState<Record<string, boolean>>({});
   const [placeholders, setPlaceholders] = useState<Record<string, string>>({});
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
@@ -41,10 +54,10 @@ const ProductImageGallery = ({ product }: ProductImageGalleryProps) => {
   
   // Reset active image if product changes
   useEffect(() => {
-    setActiveImage(mainImage);
+    setActiveImage(cloudinaryMainImage);
     // Reset error state for new product
     setImageErrors({});
-  }, [product.id, mainImage]);
+  }, [product.id, cloudinaryMainImage]);
   
   // Improved error handling for image loading
   const handleImageError = (url: string) => {
@@ -88,8 +101,17 @@ const ProductImageGallery = ({ product }: ProductImageGalleryProps) => {
       return fallbackImage;
     }
     
-    // For other URLs, use optimization
-    return optimizeImageUrl(url, url === activeImage);
+    // If it's already a Cloudinary URL, just optimize it
+    if (isCloudinaryUrl(url)) {
+      return url;
+    }
+    
+    // For other URLs, use Cloudinary conversion
+    return convertToCloudinary(url, { 
+      width: url === activeImage ? 800 : 400,
+      height: url === activeImage ? 800 : 400,
+      quality: url === activeImage ? 90 : 80
+    });
   };
   
   // Load low-quality placeholders first
@@ -98,23 +120,24 @@ const ProductImageGallery = ({ product }: ProductImageGalleryProps) => {
       try {
         const placeholderPromises = productImages.map(async (image) => {
           try {
-            // Use Cloudinary's low quality transformations for placeholders
-            if (image.includes('cloudinary')) {
-              // For Cloudinary images, just use a lower quality version
-              const lowQualityUrl = image.replace('/upload/', '/upload/q_10,e_blur:1000/');
+            // For Cloudinary images, use a lower quality version
+            if (isCloudinaryUrl(image)) {
+              // Extract parts of the URL and lower quality
+              const parts = image.split('/upload/');
+              if (parts.length === 2) {
+                const lowQualityUrl = `${parts[0]}/upload/q_10,e_blur:1000/${parts[1]}`;
+                setPlaceholders((prev) => ({
+                  ...prev,
+                  [image]: lowQualityUrl
+                }));
+              }
+            } else {
+              // For other images convert to Cloudinary with low quality
+              const lowQualityUrl = convertToCloudinary(image, { quality: 10 });
               setPlaceholders((prev) => ({
                 ...prev,
                 [image]: lowQualityUrl
               }));
-            } else {
-              // For other images try to generate LQIP
-              const placeholder = await generateLowQualityImagePlaceholder(image);
-              if (placeholder && isMounted.current) {
-                setPlaceholders((prev) => ({
-                  ...prev,
-                  [image]: placeholder
-                }));
-              }
             }
           } catch (error) {
             console.error(`Error generating placeholder for ${image}:`, error);

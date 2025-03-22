@@ -2,7 +2,12 @@
 import { toast } from "sonner";
 import { supabase } from "./client";
 import type { Product } from "@/lib/types";
-import { getRelevantPlaceholder, getCloudinaryUrl } from "@/utils/imageUtils";
+import { 
+  getRelevantPlaceholder, 
+  getCloudinaryUrl, 
+  isCloudinaryUrl, 
+  convertToCloudinary 
+} from "@/utils/imageUtils";
 
 // Get all products from Supabase
 export const getAllProducts = async (): Promise<Product[]> => {
@@ -23,6 +28,12 @@ export const getAllProducts = async (): Promise<Product[]> => {
       // Use placeholder if no image
       if (!imageUrl) {
         imageUrl = getRelevantPlaceholder(item.name);
+      } 
+      // Convert non-Cloudinary images to Cloudinary
+      else if (!isCloudinaryUrl(imageUrl)) {
+        // Don't actually convert here - we'll do that in the components
+        // just ensure we have a valid URL
+        console.log(`Product ${item.name} using original image: ${imageUrl}`);
       }
       
       return {
