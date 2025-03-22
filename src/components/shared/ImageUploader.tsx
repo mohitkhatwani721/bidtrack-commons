@@ -162,7 +162,7 @@ const ImageUploader = ({
       )}
       
       {isConfigValid === true && (
-        <Alert variant="success" className="bg-green-50 border-green-200">
+        <Alert variant="default" className="bg-green-50 border-green-200">
           <CheckCircle className="h-4 w-4 text-green-600" />
           <AlertTitle className="text-green-700">Cloudinary Configuration Valid</AlertTitle>
           <AlertDescription className="text-green-600">
