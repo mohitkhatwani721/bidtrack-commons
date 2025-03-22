@@ -44,12 +44,13 @@ export const getUserBids = async (userEmail: string) => {
   }
   
   try {
-    // Test connection first
+    // Test connection once (minimizing redundant checks)
     const isConnected = await testSupabaseConnection();
     if (!isConnected) {
       return [];
     }
     
+    // Optimize query to fetch all data in a single request
     const { data, error } = await supabase
       .from('bids')
       .select('*, products(*)')

@@ -13,16 +13,16 @@ import AuctionTimer from "@/components/ui/AuctionTimer";
 import { getRelevantPlaceholder } from "@/utils/imageUtils";
 import AccountForm from "@/components/auth/AccountForm";
 import { getCurrentUser, User } from "@/lib/auth";
+import { useQuery } from "@tanstack/react-query";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const UserBids = () => {
-  const [userBids, setUserBids] = useState<Bid[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
   const [showAuthForm, setShowAuthForm] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [currentUserEmail, setCurrentUserEmail] = useState("");
   const [currentUser, setCurrentUser] = useState<User | null>(null);
 
+  // Load user on mount
   useEffect(() => {
     window.scrollTo(0, 0);
     
@@ -32,32 +32,24 @@ const UserBids = () => {
       setCurrentUser(user);
       
       if (user) {
-        setCurrentUserEmail(user.email);
         setIsLoggedIn(true);
-        
-        // Automatically load user bids when logged in
-        fetchUserBids(user.email);
+        setHasSearched(true);
       }
     };
     
     loadUser();
   }, []);
 
-  const fetchUserBids = async (email: string) => {
-    setIsLoading(true);
-    
-    try {
-      // Get bids from Supabase
-      const bids = await getUserBids(email);
-      setUserBids(bids);
-      setHasSearched(true);
-    } catch (error) {
-      console.error("Error fetching bids:", error);
-      toast.error("Failed to load your bids");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  // Use React Query to fetch user bids
+  const { data: userBids = [], isLoading, refetch } = useQuery({
+    queryKey: ['userBids', currentUser?.email],
+    queryFn: async () => {
+      if (!currentUser?.email) return [];
+      return await getUserBids(currentUser.email);
+    },
+    enabled: !!currentUser?.email,
+    staleTime: 30000, // Consider data fresh for 30 seconds
+  });
   
   const handleAuthSuccess = async () => {
     setShowAuthForm(false);
@@ -65,12 +57,34 @@ const UserBids = () => {
     setCurrentUser(user);
     
     if (user) {
-      setCurrentUserEmail(user.email);
       setIsLoggedIn(true);
+      setHasSearched(true);
       toast.success("You're now logged in");
-      fetchUserBids(user.email);
     }
   };
+
+  // Render loading skeletons
+  const renderSkeletons = () => (
+    <div className="space-y-4">
+      {[1, 2, 3].map((index) => (
+        <div key={index} className="bg-white rounded-lg border overflow-hidden">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <Skeleton className="bg-gray-100 h-24 w-full" />
+            <div className="p-4 md:col-span-2">
+              <Skeleton className="h-6 w-3/4 mb-2" />
+              <Skeleton className="h-4 w-1/2 mb-2" />
+              <Skeleton className="h-3 w-1/3" />
+            </div>
+            <div className="p-4">
+              <Skeleton className="h-4 w-1/4 mb-2" />
+              <Skeleton className="h-6 w-1/2 mb-2" />
+              <Skeleton className="h-8 w-full mt-4" />
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -133,20 +147,18 @@ const UserBids = () => {
                   <h2 className="text-xl font-medium mb-4">Your Bids</h2>
                   <div className="flex items-center justify-between">
                     <p className="text-gray-600">
-                      Logged in as <span className="font-medium">{currentUserEmail}</span>
+                      Logged in as <span className="font-medium">{currentUser?.email}</span>
                     </p>
-                    {isLoading ? (
-                      <Button disabled>
+                    <Button onClick={() => refetch()} disabled={isLoading}>
+                      {isLoading ? (
                         <span className="flex items-center">
                           Loading
                           <span className="ml-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
                         </span>
-                      </Button>
-                    ) : (
-                      <Button onClick={() => fetchUserBids(currentUserEmail)}>
-                        Refresh Bids
-                      </Button>
-                    )}
+                      ) : (
+                        "Refresh Bids"
+                      )}
+                    </Button>
                   </div>
                 </div>
               </motion.div>
@@ -155,12 +167,7 @@ const UserBids = () => {
             {hasSearched && isLoggedIn && (
               <div className="space-y-6">
                 {isLoading ? (
-                  <div className="text-center py-8">
-                    <div className="flex justify-center">
-                      <div className="h-8 w-8 animate-spin rounded-full border-2 border-blue-500 border-t-transparent"></div>
-                    </div>
-                    <p className="text-gray-500 mt-4">Loading your bids...</p>
-                  </div>
+                  renderSkeletons()
                 ) : userBids.length === 0 ? (
                   <motion.div 
                     className="text-center py-12"
