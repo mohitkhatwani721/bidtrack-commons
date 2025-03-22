@@ -28,7 +28,7 @@ function App() {
           <Route path="/upload" element={<ImageUploadDemo />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
-        <Toaster />
+        <Toaster position="top-right" />
       </QueryClientProvider>
     </BrowserRouter>
   );

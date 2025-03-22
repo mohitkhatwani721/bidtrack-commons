@@ -69,15 +69,14 @@ const ImageUploader = ({
   };
   
   const triggerFileInput = () => {
-    // Cast to HTMLInputElement to fix TypeScript error
-    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+    const fileInput = document.getElementById('file-upload') as HTMLInputElement;
     if (fileInput) fileInput.click();
   };
   
   return (
     <div className={`space-y-4 ${className}`}>
-      <div className="flex items-end gap-4">
-        <div className="flex-1">
+      <div className="flex flex-col sm:flex-row items-start sm:items-end gap-4 w-full">
+        <div className="flex-1 w-full">
           <Input
             type="file"
             accept="image/*"
@@ -85,27 +84,27 @@ const ImageUploader = ({
             disabled={isUploading}
             className="cursor-pointer"
             id="file-upload"
+            style={{ display: 'none' }} // Hide the default file input
           />
+          <Button
+            type="button"
+            disabled={isUploading}
+            className="w-full"
+            onClick={triggerFileInput}
+          >
+            {isUploading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Uploading...
+              </>
+            ) : (
+              <>
+                <Upload className="mr-2 h-4 w-4" />
+                {buttonText}
+              </>
+            )}
+          </Button>
         </div>
-        
-        <Button
-          type="button"
-          disabled={isUploading}
-          className="flex-shrink-0"
-          onClick={triggerFileInput}
-        >
-          {isUploading ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Uploading...
-            </>
-          ) : (
-            <>
-              <Upload className="mr-2 h-4 w-4" />
-              {buttonText}
-            </>
-          )}
-        </Button>
       </div>
       
       {uploadedImage && (
