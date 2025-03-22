@@ -72,19 +72,25 @@ export const getProductById = async (id: string): Promise<Product | null> => {
       return null;
     }
     
+    console.log("Raw product data from Supabase:", data);
+    
     // Fix Samsung image URLs specifically
     let imageUrl = data.image_url;
+    console.log("Original image URL:", imageUrl);
+    
     if (imageUrl && imageUrl.includes('samsung.com')) {
       // Remove problematic parameters from Samsung URLs
       imageUrl = imageUrl.split('?')[0];
+      console.log("Sanitized Samsung URL:", imageUrl);
     }
     
     // Use placeholder if no image or as fallback
     if (!imageUrl) {
       imageUrl = getRelevantPlaceholder(data.name);
+      console.log("Using placeholder image:", imageUrl);
     }
     
-    return {
+    const product = {
       id: data.id,
       name: data.name,
       modelCode: data.model_code || '',
@@ -95,6 +101,9 @@ export const getProductById = async (id: string): Promise<Product | null> => {
       description: data.description || '',
       zone: 'Zone 1' // Default zone since we don't have this in the DB yet
     };
+    
+    console.log("Processed product object:", product);
+    return product;
   } catch (error: any) {
     console.error("Error fetching product:", error);
     toast.error("Failed to load product details");
