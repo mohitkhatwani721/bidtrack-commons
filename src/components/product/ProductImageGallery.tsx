@@ -17,8 +17,21 @@ interface ProductImageGalleryProps {
 }
 
 const ProductImageGallery = ({ product }: ProductImageGalleryProps) => {
+  // Sanitize Samsung URLs by removing query parameters
+  const sanitizeUrl = (url: string): string => {
+    if (!url) return url;
+    if (url.includes('samsung.com') && url.includes('?')) {
+      console.log('Sanitizing Samsung URL:', url);
+      return url.split('?')[0];
+    }
+    return url;
+  };
+
+  // Process the main image URL first
+  const mainImageRaw = product.imageUrl;
+  const mainImage = mainImageRaw ? sanitizeUrl(mainImageRaw) : getRelevantPlaceholder(product.name);
+  
   // Generate additional relevant images for thumbnails based on product type
-  const mainImage = product.imageUrl || getRelevantPlaceholder(product.name);
   const productImages = generateAdditionalImages(product.name, mainImage);
   
   const fallbackImage = getRelevantPlaceholder(product.name);
@@ -35,6 +48,7 @@ const ProductImageGallery = ({ product }: ProductImageGalleryProps) => {
     
     // If the main image failed to load, use fallback
     if (url === activeImage) {
+      console.log(`Setting fallback for active image: ${url} -> ${fallbackImage}`);
       setActiveImage(fallbackImage);
       toast.error("Unable to load product image. Using placeholder instead.", {
         id: "image-error",
@@ -45,9 +59,17 @@ const ProductImageGallery = ({ product }: ProductImageGalleryProps) => {
   
   // Get appropriate image source with fallbacks
   const getImageSource = (url: string) => {
+    // Always check if there's an error with this URL first
     if (imageErrors[url]) {
       return fallbackImage;
     }
+    
+    // For Samsung URLs, use the raw URL without optimization 
+    if (url.includes('samsung.com')) {
+      return sanitizeUrl(url);
+    }
+    
+    // For other URLs, use optimization
     return optimizeImageUrl(url, url === activeImage);
   };
   

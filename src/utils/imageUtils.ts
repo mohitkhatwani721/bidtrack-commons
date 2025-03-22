@@ -1,4 +1,3 @@
-
 /**
  * Utility functions for handling product images
  */
@@ -108,17 +107,33 @@ const isValidImageUrl = (url: string): boolean => {
   }
 };
 
+// Sanitize problematic image URLs before processing
+const sanitizeImageUrl = (url: string): string => {
+  if (!url) return url;
+  
+  // Handle Samsung URLs which often have problematic parameters
+  if (url.includes('samsung.com')) {
+    // Remove all query parameters from Samsung URLs as they often cause issues
+    return url.split('?')[0];
+  }
+  
+  return url;
+};
+
 // Convert an image to a low-quality data URL for quick loading
 export const generateLowQualityImagePlaceholder = async (url: string): Promise<string | null> => {
+  // Sanitize URL first
+  const sanitizedUrl = sanitizeImageUrl(url);
+  
   // Check if URL is valid
-  if (!isValidImageUrl(url)) {
+  if (!isValidImageUrl(sanitizedUrl)) {
     console.warn(`Invalid image URL: ${url}`);
     return null;
   }
   
   // Check cache first
   const cache = getImageDataCache();
-  const cacheKey = `${url}_low`;
+  const cacheKey = `${sanitizedUrl}_low`;
   
   if (cache[cacheKey] && cache[cacheKey].dataUrl) {
     return cache[cacheKey].dataUrl;
@@ -126,13 +141,13 @@ export const generateLowQualityImagePlaceholder = async (url: string): Promise<s
   
   try {
     // Handle local URLs differently
-    if (url.startsWith('/')) {
+    if (sanitizedUrl.startsWith('/')) {
       // For local images, just return the URL as we don't need to optimize
-      return url;
+      return sanitizedUrl;
     }
     
     // Use a smaller, lower quality version for the placeholder
-    const optimizedUrl = optimizeImageUrl(url, false, 20, 20);
+    const optimizedUrl = optimizeImageUrl(sanitizedUrl, false, 20, 20);
     
     return new Promise((resolve) => {
       const img = new Image();
@@ -141,7 +156,7 @@ export const generateLowQualityImagePlaceholder = async (url: string): Promise<s
       
       // Set a timeout to prevent hanging on slow-loading images
       const timeout = setTimeout(() => {
-        console.warn(`Placeholder generation timed out for: ${url}`);
+        console.warn(`Placeholder generation timed out for: ${sanitizedUrl}`);
         resolve(null);
       }, 5000);
       
@@ -166,7 +181,7 @@ export const generateLowQualityImagePlaceholder = async (url: string): Promise<s
           
           // Cache the result
           cache[cacheKey] = {
-            url,
+            url: sanitizedUrl,
             dataUrl,
             timestamp: Date.now(),
             lowQuality: true
@@ -182,7 +197,7 @@ export const generateLowQualityImagePlaceholder = async (url: string): Promise<s
       
       img.onerror = () => {
         clearTimeout(timeout);
-        console.warn(`Failed to load image for placeholder: ${url}`);
+        console.warn(`Failed to load image for placeholder: ${sanitizedUrl}`);
         resolve(null);
       };
     });
@@ -200,14 +215,17 @@ export const optimizeImageUrl = (
   height?: number,
   quality: number = 80
 ): string => {
+  // Sanitize URL first
+  const sanitizedUrl = sanitizeImageUrl(url);
+  
   // Return original URL for invalid URLs or local assets
-  if (!isValidImageUrl(url)) {
+  if (!isValidImageUrl(sanitizedUrl)) {
     console.warn(`Invalid image URL being optimized: ${url}`);
     return getRelevantPlaceholder("default");
   }
   
-  if (url.startsWith('/')) {
-    return url;
+  if (sanitizedUrl.startsWith('/')) {
+    return sanitizedUrl;
   }
   
   // Determine the size to use
@@ -216,16 +234,28 @@ export const optimizeImageUrl = (
   
   // Check the cache first
   const cache = getImageCache();
-  const cacheKey = `${url}_${optimizedWidth}_${optimizedHeight}_${quality}`;
+  const cacheKey = `${sanitizedUrl}_${optimizedWidth}_${optimizedHeight}_${quality}`;
   
   if (cache[cacheKey]) {
     return cache[cacheKey].optimizedUrl;
   }
   
+  // If it's a Samsung image, don't try to add parameters as they often break the URL
+  if (sanitizedUrl.includes('samsung.com')) {
+    // Just use the sanitized URL without any parameters
+    cache[cacheKey] = {
+      url: sanitizedUrl,
+      optimizedUrl: sanitizedUrl,
+      timestamp: Date.now()
+    };
+    saveImageCache(cache);
+    return sanitizedUrl;
+  }
+  
   // If it's an Unsplash image, add size optimization parameters
-  let optimizedUrl = url;
-  if (url.includes('images.unsplash.com')) {
-    const hasParams = url.includes('?');
+  let optimizedUrl = sanitizedUrl;
+  if (sanitizedUrl.includes('images.unsplash.com')) {
+    const hasParams = sanitizedUrl.includes('?');
     const widthParam = `w=${optimizedWidth}`;
     const qualityParam = `q=${quality}`; 
     const fitParam = 'fit=max'; // Ensures that the image won't be cropped
@@ -233,10 +263,10 @@ export const optimizeImageUrl = (
     
     // Add or replace width parameter
     if (hasParams) {
-      if (url.includes('w=')) {
-        optimizedUrl = url.replace(/w=\d+/, widthParam);
+      if (sanitizedUrl.includes('w=')) {
+        optimizedUrl = sanitizedUrl.replace(/w=\d+/, widthParam);
       } else {
-        optimizedUrl = `${url}&${widthParam}&${qualityParam}&${fitParam}&${formatParam}`;
+        optimizedUrl = `${sanitizedUrl}&${widthParam}&${qualityParam}&${fitParam}&${formatParam}`;
       }
       
       // Replace quality if it exists
@@ -244,18 +274,18 @@ export const optimizeImageUrl = (
         optimizedUrl = optimizedUrl.replace(/q=\d+/, qualityParam);
       }
     } else {
-      optimizedUrl = `${url}?${widthParam}&${qualityParam}&${fitParam}&${formatParam}`;
+      optimizedUrl = `${sanitizedUrl}?${widthParam}&${qualityParam}&${fitParam}&${formatParam}`;
     }
-  } else if (url.includes('images.samsung.com')) {
+  } else if (sanitizedUrl.includes('images.samsung.com')) {
     // Optimize Samsung images if they support similar parameters
-    if (!url.includes('?')) {
-      optimizedUrl = `${url}?width=${optimizedWidth}&quality=${quality}`;
+    if (!sanitizedUrl.includes('?')) {
+      optimizedUrl = `${sanitizedUrl}?width=${optimizedWidth}&quality=${quality}`;
     }
   }
   
   // Save to cache
   cache[cacheKey] = {
-    url,
+    url: sanitizedUrl,
     optimizedUrl,
     timestamp: Date.now()
   };
@@ -272,8 +302,10 @@ export const preloadImages = (urls: string[]): Promise<Record<string, boolean>> 
   // Create a map to track which images are loaded
   const loadStatus: Record<string, boolean> = {};
   
-  // Filter out invalid URLs
-  const validUrls = urls.filter(url => isValidImageUrl(url));
+  // Sanitize and filter out invalid URLs
+  const validUrls = urls
+    .map(url => sanitizeImageUrl(url))
+    .filter(url => isValidImageUrl(url));
   
   if (validUrls.length < urls.length) {
     console.warn(`Filtered out ${urls.length - validUrls.length} invalid image URLs`);
@@ -385,3 +417,4 @@ export const generateAdditionalImages = (productName: string, mainImage: string)
   
   return additionalImages;
 };
+

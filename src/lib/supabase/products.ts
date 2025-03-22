@@ -17,8 +17,19 @@ export const getAllProducts = async (): Promise<Product[]> => {
     }
     
     return data.map(item => {
-      // Get a proper image URL, using the placeholder if needed
-      const imageUrl = item.image_url || getRelevantPlaceholder(item.name);
+      // Fix Samsung image URLs and use placeholder if needed
+      let imageUrl = item.image_url;
+      
+      // Handle Samsung image URLs specifically
+      if (imageUrl && imageUrl.includes('samsung.com')) {
+        // Remove problematic parameters from Samsung URLs
+        imageUrl = imageUrl.split('?')[0];
+      }
+      
+      // Use placeholder if no image or as fallback
+      if (!imageUrl) {
+        imageUrl = getRelevantPlaceholder(item.name);
+      }
       
       return {
         id: item.id,
@@ -61,8 +72,17 @@ export const getProductById = async (id: string): Promise<Product | null> => {
       return null;
     }
     
-    // Get a proper image URL, using the placeholder if needed
-    const imageUrl = data.image_url || getRelevantPlaceholder(data.name);
+    // Fix Samsung image URLs specifically
+    let imageUrl = data.image_url;
+    if (imageUrl && imageUrl.includes('samsung.com')) {
+      // Remove problematic parameters from Samsung URLs
+      imageUrl = imageUrl.split('?')[0];
+    }
+    
+    // Use placeholder if no image or as fallback
+    if (!imageUrl) {
+      imageUrl = getRelevantPlaceholder(data.name);
+    }
     
     return {
       id: data.id,
