@@ -68,8 +68,12 @@ export function useBidForm({ productId, startingPrice, initialEmail = "" }: UseB
     const currentUser = await getCurrentUser();
     const userEmail = currentUser ? currentUser.email : email;
     
-    // Place bid using Supabase
-    const bid = await placeBidToSupabase(productId, userEmail, bidAmount);
+    // Place bid using Supabase - Fixed by passing a single object instead of three separate arguments
+    const bid = await placeBidToSupabase({
+      productId,
+      userEmail,
+      amount: bidAmount
+    });
     
     setIsSubmitting(false);
     
