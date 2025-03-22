@@ -12,7 +12,7 @@ import {
 
 // Image optimization cache
 const productCache: Record<string, {data: Product, timestamp: number}> = {};
-const productListCache: {data: Product[], timestamp: number} | null = null;
+let productListCache: {data: Product[], timestamp: number} | null = null;
 const CACHE_EXPIRY = 5 * 60 * 1000; // 5 minutes cache
 
 // Get all products from Supabase with caching
