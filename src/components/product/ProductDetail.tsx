@@ -11,6 +11,7 @@ import ProductStats from "./ProductStats";
 import ProductBidSection from "./ProductBidSection";
 import ProductTabs from "./ProductTabs";
 import { getProductById } from "@/lib/supabase";
+import ProductDetailSkeleton from "@/components/ui/loading/ProductDetailSkeleton";
 
 const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -41,28 +42,6 @@ const ProductDetail = () => {
 
   if (!mounted) return null;
 
-  if (loading) {
-    return (
-      <div className="container mx-auto px-4 py-16">
-        <div className="animate-pulse space-y-8">
-          <div className="h-6 bg-gray-200 rounded w-1/4"></div>
-          <div className="h-8 bg-gray-200 rounded w-3/4"></div>
-          <div className="h-64 bg-gray-200 rounded"></div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!product) {
-    return (
-      <div className="container mx-auto px-4 py-16 text-center">
-        <h2 className="text-2xl font-bold mb-4">Product Not Found</h2>
-        <p className="text-gray-600 mb-8">The product you're looking for doesn't exist or has been removed.</p>
-        <Button onClick={() => navigate(-1)}>Go Back</Button>
-      </div>
-    );
-  }
-  
   return (
     <div className="container mx-auto px-4 py-16 mt-8">
       <Button 
@@ -75,21 +54,31 @@ const ProductDetail = () => {
         Back to products
       </Button>
       
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-        <ProductImageGallery product={product} />
-        
-        <motion.div 
-          className="space-y-6"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-        >
-          <ProductHeader product={product} />
-          <ProductStats product={product} />
-          <ProductBidSection product={product} />
-          <ProductTabs product={product} />
-        </motion.div>
-      </div>
+      {loading ? (
+        <ProductDetailSkeleton />
+      ) : !product ? (
+        <div className="text-center py-16">
+          <h2 className="text-2xl font-bold mb-4">Product Not Found</h2>
+          <p className="text-gray-600 mb-8">The product you're looking for doesn't exist or has been removed.</p>
+          <Button onClick={() => navigate(-1)}>Go Back</Button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+          <ProductImageGallery product={product} />
+          
+          <motion.div 
+            className="space-y-6"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+          >
+            <ProductHeader product={product} />
+            <ProductStats product={product} />
+            <ProductBidSection product={product} />
+            <ProductTabs product={product} />
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 };

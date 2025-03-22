@@ -1,7 +1,7 @@
-
 import { Button } from "@/components/ui/button";
 import { Bid } from "@/lib/types";
 import BidItem from "./BidItem";
+import Spinner from "@/components/ui/loading/Spinner";
 
 interface BidListProps {
   bids: Bid[];
@@ -14,9 +14,7 @@ const BidList = ({ bids, isAdmin, onLogout, isLoading = false }: BidListProps) =
   if (isLoading) {
     return (
       <div className="text-center py-8">
-        <div className="flex justify-center">
-          <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-500 border-t-transparent"></div>
-        </div>
+        <Spinner size="lg" />
         <p className="text-gray-500 mt-2">Loading bids...</p>
       </div>
     );

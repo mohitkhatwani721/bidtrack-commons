@@ -1,10 +1,10 @@
-
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Product } from "@/lib/types";
 import ProductCard from "@/components/product/ProductCard";
 import { getAllProducts } from "@/lib/supabase";
 import { toast } from "sonner";
+import ProductCardSkeleton from "@/components/ui/loading/ProductCardSkeleton";
 
 const FeaturedProducts = () => {
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
@@ -69,18 +69,8 @@ const FeaturedProducts = () => {
         
         {loading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {[1, 2, 3, 4].map((_, index) => (
-              <div key={index} className="border rounded-lg overflow-hidden animate-pulse">
-                <div className="bg-gray-200 h-64 w-full"></div>
-                <div className="p-4 space-y-3">
-                  <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                  <div className="h-3 bg-gray-200 rounded w-1/2"></div>
-                  <div className="pt-3 space-y-3">
-                    <div className="h-4 bg-gray-200 rounded w-1/4"></div>
-                    <div className="h-3 bg-gray-200 rounded w-1/3"></div>
-                  </div>
-                </div>
-              </div>
+            {Array(4).fill(0).map((_, index) => (
+              <ProductCardSkeleton key={index} featured />
             ))}
           </div>
         ) : (

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Input } from "@/components/ui/input";
@@ -8,6 +7,7 @@ import { ArrowRight, Lock } from "lucide-react";
 import { useBidForm } from "@/hooks/useBidForm";
 import { getCurrentUser, User } from "@/lib/auth";
 import AccountForm from "@/components/auth/AccountForm";
+import Spinner from "@/components/ui/loading/Spinner";
 
 interface BidFormProps {
   productId: string;
@@ -34,7 +34,6 @@ const BidForm = ({ productId, startingPrice }: BidFormProps) => {
   
   useEffect(() => {
     const loadUser = async () => {
-      // Clear any stale user data in localStorage
       localStorage.removeItem("currentUser");
       
       const user = await getCurrentUser();
@@ -49,7 +48,6 @@ const BidForm = ({ productId, startingPrice }: BidFormProps) => {
   
   const handleAuthSuccess = async () => {
     setShowAuthForm(false);
-    // Clear any existing session data
     localStorage.removeItem("currentUser");
     
     const user = await getCurrentUser();
@@ -147,7 +145,7 @@ const BidForm = ({ productId, startingPrice }: BidFormProps) => {
           {isSubmitting ? (
             <span className="flex items-center">
               Processing
-              <span className="ml-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+              <Spinner size="sm" color="light" className="ml-2" />
             </span>
           ) : (
             <span className="flex items-center justify-center">

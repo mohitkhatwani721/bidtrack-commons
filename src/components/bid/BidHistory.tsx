@@ -6,6 +6,7 @@ import BidLoginPrompt from "./BidLoginPrompt";
 import BidList from "./BidList";
 import { getBidsForProduct } from "@/lib/supabase";
 import { toast } from "sonner";
+import BidListSkeleton from "@/components/ui/loading/BidListSkeleton";
 
 interface BidHistoryProps {
   productId: string;
@@ -85,12 +86,16 @@ const BidHistory = ({ productId }: BidHistoryProps) => {
     );
   }
   
+  if (loading) {
+    return <BidListSkeleton count={3} />;
+  }
+  
   return (
     <BidList 
       bids={productBids} 
       isAdmin={isAdmin} 
       onLogout={handleLogout}
-      isLoading={loading}
+      isLoading={false}
     />
   );
 };

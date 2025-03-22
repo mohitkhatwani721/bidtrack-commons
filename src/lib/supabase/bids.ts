@@ -1,4 +1,3 @@
-
 import { toast } from 'sonner';
 import { supabase } from './client';
 import { isSupabaseConfigured, testSupabaseConnection, handleSupabaseError } from './utils';
@@ -10,7 +9,7 @@ export const getBidsForProduct = async (productId: string) => {
   }
   
   try {
-    // Test connection first
+    // Test connection first (only once per request)
     const isConnected = await testSupabaseConnection();
     if (!isConnected) {
       return [];
@@ -85,17 +84,11 @@ export const getUserBids = async (userEmail: string) => {
 
 export const getHighestBidForProduct = async (productId: string) => {
   if (!isSupabaseConfigured()) {
-    toast.error('Supabase is not configured. Please connect your Supabase project first.');
     return null;
   }
   
   try {
-    // Test connection first
-    const isConnected = await testSupabaseConnection();
-    if (!isConnected) {
-      return null;
-    }
-    
+    // Minimize checking connection for performance
     const { data, error } = await supabase
       .from('bids')
       .select('*')
@@ -114,7 +107,7 @@ export const getHighestBidForProduct = async (productId: string) => {
       timestamp: new Date(data[0].created_at)
     };
   } catch (error) {
-    handleSupabaseError(error, 'Failed to load highest bid');
+    console.error('Error fetching highest bid:', error);
     return null;
   }
 };
