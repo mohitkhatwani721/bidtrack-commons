@@ -138,7 +138,7 @@ const ImageUploadDemo = () => {
                       <SelectValue placeholder="Select a product" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">None (generic upload)</SelectItem>
+                      <SelectItem value="none">None (generic upload)</SelectItem>
                       {isLoading ? (
                         <div className="flex items-center justify-center p-2">
                           <Loader2 className="h-4 w-4 animate-spin mr-2" />
@@ -160,7 +160,7 @@ const ImageUploadDemo = () => {
                 
                 <ImageUploader 
                   onImageUploaded={handleImageUploaded} 
-                  productId={selectedProductId || undefined}
+                  productId={selectedProductId !== "none" ? selectedProductId : undefined}
                 />
               </div>
               
@@ -169,7 +169,7 @@ const ImageUploadDemo = () => {
                   <h3 className="text-lg font-medium mb-2">Upload Information</h3>
                   <p><strong>Public ID:</strong> {uploadedImageInfo.publicId}</p>
                   <p className="mt-1"><strong>URL:</strong> <span className="text-sm break-all">{uploadedImageInfo.url}</span></p>
-                  {selectedProductId && (
+                  {selectedProductId && selectedProductId !== "none" && (
                     <p className="mt-1"><strong>Associated with Product ID:</strong> <span className="text-sm">{selectedProductId}</span></p>
                   )}
                 </div>
