@@ -50,6 +50,9 @@ function App() {
         {/* Redirect /product/:id (wrong path) to /products/:id (correct path) using the wrapper component */}
         <Route path="/product/:id" element={<ProductRedirect />} />
         
+        {/* Let's add a redirect for /my-bids to /bids to handle any old links */}
+        <Route path="/my-bids" element={<Navigate to="/bids" replace />} />
+        
         {/* Catch all other routes */}
         <Route path="*" element={<Navigate to="/404" replace />} />
       </Routes>

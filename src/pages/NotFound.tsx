@@ -2,7 +2,7 @@
 import { useLocation, Link, useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Home, Search } from "lucide-react";
+import { ArrowLeft, Home, Search, User } from "lucide-react";
 
 const NotFound = () => {
   const location = useLocation();
@@ -18,8 +18,9 @@ const NotFound = () => {
     console.log("Current route that caused 404:", location);
   }, [location]);
 
-  // Check if the path looks like a product details page with wrong format
+  // Check what type of page the user might be looking for
   const isLikelyProductPage = location.pathname.includes('/product/');
+  const isLikelyBidsPage = location.pathname.includes('/my-bids') || location.pathname.includes('/bids/');
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
@@ -40,6 +41,19 @@ const NotFound = () => {
             <Button variant="outline" size="sm" onClick={() => navigate('/products')}>
               <Search className="mr-2 h-4 w-4" />
               Browse Products
+            </Button>
+          </div>
+        )}
+        
+        {isLikelyBidsPage && (
+          <div className="mb-6 p-4 bg-blue-50 rounded-md text-left">
+            <p className="text-blue-700 mb-2 font-medium">Looking for your bids?</p>
+            <p className="text-blue-600 text-sm mb-4">
+              It looks like you might be trying to access the bids page. The correct URL is /bids.
+            </p>
+            <Button variant="outline" size="sm" onClick={() => navigate('/bids')}>
+              <User className="mr-2 h-4 w-4" />
+              Go to My Bids
             </Button>
           </div>
         )}
