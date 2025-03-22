@@ -12,6 +12,7 @@ import UserBids from "./pages/UserBids";
 import NotFound from "./pages/NotFound";
 import ImageUploadDemo from "./pages/ImageUploadDemo";
 
+// Create a client
 const queryClient = new QueryClient();
 
 function App() {
