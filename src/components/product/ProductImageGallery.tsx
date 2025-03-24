@@ -7,6 +7,8 @@ import ImageErrorAlert from "./gallery/ImageErrorAlert";
 import { processProductImage, getImageSource } from "./gallery/ImageProcessor";
 import { usePlaceholders } from "./gallery/usePlaceholders";
 import { useImageLoading, useImageErrorHandling } from "./gallery/useImageLoading";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import ImageUploader from "@/components/shared/ImageUploader";
 
 interface ProductImageGalleryProps {
   product: Product;
@@ -19,6 +21,7 @@ const ProductImageGallery = ({ product }: ProductImageGalleryProps) => {
   // State management
   const [activeImage, setActiveImage] = useState<string>(cloudinaryMainImage);
   const { imageErrors, retryCount, handleImageError, handleRetryImages } = useImageErrorHandling(fallbackImage);
+  const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
   
   // Load placeholders and preload images
   const placeholders = usePlaceholders(productImages);
@@ -37,11 +40,23 @@ const ProductImageGallery = ({ product }: ProductImageGalleryProps) => {
   
   // Check if all images have errors
   const allImagesHaveErrors = productImages.every(img => imageErrors[img]);
+
+  // Handle image upload
+  const handleImageUploaded = (publicId: string, url: string) => {
+    // Close the dialog
+    setIsUploadDialogOpen(false);
+    
+    // Set the uploaded image as active
+    setActiveImage(url);
+  };
   
   return (
     <div className="space-y-6">
       {allImagesHaveErrors && (
-        <ImageErrorAlert onRetryClick={handleRetryImages} />
+        <ImageErrorAlert 
+          onRetryClick={handleRetryImages} 
+          onUploadClick={() => setIsUploadDialogOpen(true)}
+        />
       )}
       
       <ProductImageDisplay
@@ -64,6 +79,20 @@ const ProductImageGallery = ({ product }: ProductImageGalleryProps) => {
         getImageSource={getProcessedImageSource}
         handleImageError={handleImageError}
       />
+
+      {/* Image Upload Dialog */}
+      <Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Upload Relevant Product Image</DialogTitle>
+          </DialogHeader>
+          <ImageUploader 
+            productId={product.id} 
+            onImageUploaded={handleImageUploaded}
+            buttonText="Upload Relevant Image"
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

@@ -4,7 +4,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Product } from "@/lib/types";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ImagePlus } from "lucide-react";
+import { ArrowLeft, ImagePlus, Camera } from "lucide-react";
 import ProductImageGallery from "./ProductImageGallery";
 import ProductHeader from "./ProductHeader";
 import ProductStats from "./ProductStats";
@@ -118,12 +118,22 @@ const ProductDetail = () => {
         <div>
           <ProductImageGallery product={product} />
           
-          <div className="mt-4 flex justify-end">
+          <div className="mt-4 flex justify-between">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => navigate("/upload")}
+              className="text-gray-600"
+            >
+              <Camera className="h-4 w-4 mr-2" />
+              Go to Upload Demo
+            </Button>
+
             <Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
               <DialogTrigger asChild>
-                <Button variant="outline" size="sm">
+                <Button variant="default" size="sm">
                   <ImagePlus className="h-4 w-4 mr-2" />
-                  Update Product Image
+                  Upload Product Image
                 </Button>
               </DialogTrigger>
               <DialogContent className="sm:max-w-[425px]">
