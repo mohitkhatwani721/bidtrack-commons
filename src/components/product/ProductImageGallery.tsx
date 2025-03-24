@@ -20,7 +20,7 @@ const ProductImageGallery = ({ product }: ProductImageGalleryProps) => {
   
   // State management
   const [activeImage, setActiveImage] = useState<string>(cloudinaryMainImage);
-  const { imageErrors, retryCount, handleImageError, handleRetryImages } = useImageErrorHandling(fallbackImage);
+  const { imageErrors, retryCount, isRetrying, handleImageError, handleRetryImages } = useImageErrorHandling(fallbackImage);
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
   
   // Load placeholders and preload images
@@ -40,6 +40,9 @@ const ProductImageGallery = ({ product }: ProductImageGalleryProps) => {
   
   // Check if all images have errors
   const allImagesHaveErrors = productImages.every(img => imageErrors[img]);
+  
+  // Check if at least one image has errors
+  const hasAnyImageError = productImages.some(img => imageErrors[img]);
 
   // Handle image upload
   const handleImageUploaded = (publicId: string, url: string) => {
@@ -52,10 +55,11 @@ const ProductImageGallery = ({ product }: ProductImageGalleryProps) => {
   
   return (
     <div className="space-y-6">
-      {allImagesHaveErrors && (
+      {hasAnyImageError && (
         <ImageErrorAlert 
-          onRetryClick={handleRetryImages} 
+          onRetryClick={handleRetryImages}
           onUploadClick={() => setIsUploadDialogOpen(true)}
+          retryCount={retryCount}
         />
       )}
       

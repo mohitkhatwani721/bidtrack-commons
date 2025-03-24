@@ -1,6 +1,6 @@
 
 import { useState, useEffect, useRef } from "react";
-import { preloadImages } from "@/utils/imageUtils";
+import { preloadImages, sanitizeSamsungUrl } from "@/utils/imageUtils";
 import { toast } from "sonner";
 
 export const useImageLoading = (
@@ -18,7 +18,17 @@ export const useImageLoading = (
     const loadImages = async () => {
       try {
         console.log("Preloading images:", productImages);
-        const loadStatus = await preloadImages(productImages);
+        
+        // First clean any Samsung URLs that might be causing issues
+        const sanitizedImages = productImages.map(url => {
+          if (url.includes('samsung.com')) {
+            return sanitizeSamsungUrl(url);
+          }
+          return url;
+        });
+        
+        const loadStatus = await preloadImages(sanitizedImages);
+        
         if (isMounted.current) {
           setImagesLoaded(loadStatus);
           console.log("Images load status:", loadStatus);
@@ -56,11 +66,23 @@ export const useImageLoading = (
 export const useImageErrorHandling = (fallbackImage: string) => {
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
   const [retryCount, setRetryCount] = useState(0);
+  const [isRetrying, setIsRetrying] = useState(false);
   const toastShown = useRef(false);
   
   // Improved error handling for image loading
   const handleImageError = (url: string) => {
+    if (!url) return;
+    
     console.log(`Error loading image: ${url}`);
+    
+    // Try to sanitize Samsung URLs automatically
+    if (url.includes('samsung.com')) {
+      const sanitizedUrl = sanitizeSamsungUrl(url);
+      if (sanitizedUrl !== url) {
+        console.log(`Auto-sanitized Samsung URL: ${url} -> ${sanitizedUrl}`);
+        return; // Let the sanitized URL try to load
+      }
+    }
     
     setImageErrors(prev => ({ ...prev, [url]: true }));
     
@@ -78,7 +100,10 @@ export const useImageErrorHandling = (fallbackImage: string) => {
   const handleRetryImages = () => {
     console.log("Manually retrying image load");
     
-    // Clear error states and reset loaded states
+    if (isRetrying) return;
+    setIsRetrying(true);
+    
+    // Clear error states
     setImageErrors({});
     toastShown.current = false;
     
@@ -89,11 +114,17 @@ export const useImageErrorHandling = (fallbackImage: string) => {
       id: "retry-images",
       duration: 2000
     });
+    
+    // Reset retry flag after a delay
+    setTimeout(() => {
+      setIsRetrying(false);
+    }, 2000);
   };
   
   return {
     imageErrors,
     retryCount,
+    isRetrying,
     handleImageError,
     handleRetryImages
   };

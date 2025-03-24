@@ -1,16 +1,20 @@
 
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { RefreshCcw, ImagePlus } from "lucide-react";
+import { RefreshCcw, ImagePlus, RotateCw } from "lucide-react";
 
 interface ImageErrorAlertProps {
   onRetryClick: () => void;
   onUploadClick: () => void;
+  retryCount: number;
 }
 
-const ImageErrorAlert = ({ onRetryClick, onUploadClick }: ImageErrorAlertProps) => {
+const ImageErrorAlert = ({ onRetryClick, onUploadClick, retryCount }: ImageErrorAlertProps) => {
   return (
     <Alert variant="default" className="mb-4 border-amber-200 bg-amber-50 text-amber-800">
-      <AlertTitle className="text-amber-800">Image Loading Issue</AlertTitle>
+      <AlertTitle className="text-amber-800 flex items-center gap-2">
+        <RotateCw className="h-4 w-4" />
+        Image Loading Issue
+      </AlertTitle>
       <AlertDescription className="flex flex-col space-y-2">
         <p>We're having trouble loading some product images. You can try reloading or upload a relevant image instead.</p>
         <div className="flex flex-wrap gap-2">
@@ -19,7 +23,7 @@ const ImageErrorAlert = ({ onRetryClick, onUploadClick }: ImageErrorAlertProps) 
             className="flex items-center justify-center space-x-2 bg-amber-100 text-amber-800 hover:bg-amber-200 py-1 px-2 rounded text-sm w-fit"
           >
             <RefreshCcw className="h-4 w-4 mr-1" />
-            Retry Loading
+            Retry Loading {retryCount > 0 ? `(${retryCount})` : ''}
           </button>
           
           <button 

@@ -1,12 +1,16 @@
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import ProductDetailComponent from "@/components/product/ProductDetail";
 import { sanitizeSamsungUrl } from "@/utils/imageUtils";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { RefreshCcw } from "lucide-react";
 
 const ProductDetail = () => {
+  const retryCount = useRef(0);
+  
   useEffect(() => {
     // Ensure we scroll to top when the component mounts
     window.scrollTo(0, 0);
@@ -66,11 +70,47 @@ const ProductDetail = () => {
     };
   }, []);
 
+  const handleGlobalRetry = () => {
+    // Force reload all images by changing their URLs slightly
+    retryCount.current += 1;
+    
+    const images = document.querySelectorAll('img');
+    images.forEach(img => {
+      const currentSrc = img.src;
+      if (currentSrc) {
+        // For Cloudinary URLs, we can force a reload by adding a cachebuster
+        if (currentSrc.includes('cloudinary.com')) {
+          const newSrc = currentSrc.includes('?') 
+            ? `${currentSrc}&_retry=${retryCount.current}` 
+            : `${currentSrc}?_retry=${retryCount.current}`;
+            
+          img.src = newSrc;
+        }
+      }
+    });
+    
+    toast.info("Reloading all images...", {
+      id: "global-image-retry",
+      duration: 2000
+    });
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
       
       <main className="flex-grow pt-24 pb-16">
+        <div className="container mx-auto px-4 flex justify-end mb-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleGlobalRetry}
+            className="text-xs"
+          >
+            <RefreshCcw className="h-3 w-3 mr-1" />
+            Reload All Images
+          </Button>
+        </div>
         <ProductDetailComponent />
       </main>
       
