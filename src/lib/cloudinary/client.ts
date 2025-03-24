@@ -1,4 +1,3 @@
-
 // Cloudinary configuration
 export const CLOUDINARY_CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || 'di8rdvt2y';
 export const CLOUDINARY_API_KEY = import.meta.env.VITE_CLOUDINARY_API_KEY || '293774813922618';
@@ -115,11 +114,6 @@ export const uploadToCloudinary = async (file: File, productId?: string): Promis
       const uniqueFilename = `product_${productId}_${Date.now()}`;
       formData.append('public_id', uniqueFilename);
       console.log(`Associating image with product ID: ${productId}`);
-      
-      // Request eager transformations to pre-generate common sizes
-      // This reduces latency for first-time viewers
-      formData.append('eager', 'w_400,h_300,c_fill|w_800,h_600,c_fill');
-      formData.append('eager_async', 'true');
     }
 
     // Define the upload URL
