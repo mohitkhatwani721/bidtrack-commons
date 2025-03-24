@@ -1,14 +1,22 @@
 
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { RefreshCcw, ImagePlus, RotateCw } from "lucide-react";
+import { RefreshCcw, ImagePlus, RotateCw, ExternalLink } from "lucide-react";
 
 interface ImageErrorAlertProps {
   onRetryClick: () => void;
   onUploadClick: () => void;
   retryCount: number;
+  isSamsungImage?: boolean;
+  isCloudinaryImage?: boolean;
 }
 
-const ImageErrorAlert = ({ onRetryClick, onUploadClick, retryCount }: ImageErrorAlertProps) => {
+const ImageErrorAlert = ({ 
+  onRetryClick, 
+  onUploadClick, 
+  retryCount,
+  isSamsungImage = false,
+  isCloudinaryImage = false
+}: ImageErrorAlertProps) => {
   return (
     <Alert variant="default" className="mb-4 border-amber-200 bg-amber-50 text-amber-800">
       <AlertTitle className="text-amber-800 flex items-center gap-2">
@@ -16,7 +24,14 @@ const ImageErrorAlert = ({ onRetryClick, onUploadClick, retryCount }: ImageError
         Image Loading Issue
       </AlertTitle>
       <AlertDescription className="flex flex-col space-y-2">
-        <p>We're having trouble loading some product images. You can try reloading or upload a relevant image instead.</p>
+        <p>
+          {isSamsungImage 
+            ? "We're having trouble loading Samsung product images." 
+            : isCloudinaryImage
+              ? "We're having trouble loading your uploaded image from Cloudinary."
+              : "We're having trouble loading some product images."}
+          {" "}You can try reloading or upload a relevant image instead.
+        </p>
         <div className="flex flex-wrap gap-2">
           <button 
             onClick={onRetryClick}

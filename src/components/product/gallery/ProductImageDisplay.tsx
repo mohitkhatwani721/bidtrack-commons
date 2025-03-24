@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { Product } from "@/lib/types";
+import { toast } from "sonner";
 
 interface ProductImageDisplayProps {
   activeImage: string;
@@ -23,6 +24,13 @@ const ProductImageDisplay = ({
   fallbackImage,
   handleImageError
 }: ProductImageDisplayProps) => {
+  const [loadAttempt, setLoadAttempt] = useState(0);
+  
+  // Reset load attempt when active image changes
+  useEffect(() => {
+    setLoadAttempt(0);
+  }, [activeImage]);
+  
   // Get appropriate image source with fallbacks
   const getImageSource = (url: string) => {
     // Always check if there's an error with this URL first
@@ -31,8 +39,28 @@ const ProductImageDisplay = ({
       return fallbackImage;
     }
     
+    // If this is a retry attempt, add a cache-busting parameter
+    if (loadAttempt > 0) {
+      return `${url}${url.includes('?') ? '&' : '?'}_attempt=${loadAttempt}`;
+    }
+    
     return url;
   };
+
+  const handleManualRetry = () => {
+    // Increment load attempt to trigger a cache-busting reload
+    setLoadAttempt(prev => prev + 1);
+    
+    // Clear the error for this image
+    if (imageErrors[activeImage]) {
+      handleImageError(activeImage); // This will reset the error status
+    }
+    
+    toast.info("Retrying image load...");
+  };
+  
+  // Prepare the image source with potential cache busting
+  const imageSource = getImageSource(activeImage);
 
   return (
     <motion.div 
@@ -62,7 +90,7 @@ const ProductImageDisplay = ({
       )}
       
       <img
-        src={getImageSource(activeImage)}
+        src={imageSource}
         alt={product.name}
         className="h-full w-full object-contain p-6 transition-opacity duration-300"
         style={{ 
@@ -70,7 +98,7 @@ const ProductImageDisplay = ({
         }}
         loading="eager" // Load main product image immediately
         onError={() => {
-          console.log("Main image error, falling back to sample image");
+          console.log(`Main image error (attempt ${loadAttempt}), falling back to sample image: ${activeImage}`);
           handleImageError(activeImage);
         }}
       />

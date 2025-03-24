@@ -9,6 +9,7 @@ import { usePlaceholders } from "./gallery/usePlaceholders";
 import { useImageLoading, useImageErrorHandling } from "./gallery/useImageLoading";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import ImageUploader from "@/components/shared/ImageUploader";
+import { toast } from "sonner";
 
 interface ProductImageGalleryProps {
   product: Product;
@@ -44,6 +45,16 @@ const ProductImageGallery = ({ product }: ProductImageGalleryProps) => {
   // Check if at least one image has errors
   const hasAnyImageError = productImages.some(img => imageErrors[img]);
 
+  // Check if the error is specifically with a Samsung image
+  const hasSamsungImageError = productImages.some(img => 
+    imageErrors[img] && img.includes('samsung.com')
+  );
+  
+  // Check if the error is with a Cloudinary image
+  const hasCloudinaryImageError = productImages.some(img => 
+    imageErrors[img] && img.includes('cloudinary.com') && !img.includes('samsung.com')
+  );
+
   // Handle image upload
   const handleImageUploaded = (publicId: string, url: string) => {
     // Close the dialog
@@ -51,6 +62,16 @@ const ProductImageGallery = ({ product }: ProductImageGalleryProps) => {
     
     // Set the uploaded image as active
     setActiveImage(url);
+    
+    // Clear any existing errors for this image to force a reload
+    if (imageErrors[url]) {
+      handleRetryImages();
+    }
+    
+    // Notify user
+    toast.success("Image uploaded successfully! Displaying image...");
+    
+    console.log("Uploaded image set as active:", url);
   };
   
   return (
@@ -60,6 +81,8 @@ const ProductImageGallery = ({ product }: ProductImageGalleryProps) => {
           onRetryClick={handleRetryImages}
           onUploadClick={() => setIsUploadDialogOpen(true)}
           retryCount={retryCount}
+          isSamsungImage={hasSamsungImageError}
+          isCloudinaryImage={hasCloudinaryImageError}
         />
       )}
       
