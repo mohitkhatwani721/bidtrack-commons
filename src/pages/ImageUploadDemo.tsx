@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
@@ -18,7 +17,6 @@ const ImageUploadDemo = () => {
   const [selectedProductId, setSelectedProductId] = useState<string>("");
   const [configStatus, setConfigStatus] = useState<"valid" | "invalid" | "incomplete" | "checking">("checking");
   
-  // Check Cloudinary configuration on mount
   useEffect(() => {
     console.log("ImageUploadDemo mounted");
     console.log("Cloudinary config:", {
@@ -27,7 +25,6 @@ const ImageUploadDemo = () => {
       uploadPreset: CLOUDINARY_UPLOAD_PRESET
     });
     
-    // Validate configuration
     const hasCloudName = !!CLOUDINARY_CLOUD_NAME;
     const hasApiKey = !!CLOUDINARY_API_KEY;
     const hasUploadPreset = !!CLOUDINARY_UPLOAD_PRESET;
@@ -43,7 +40,6 @@ const ImageUploadDemo = () => {
       console.error("Missing critical Cloudinary configuration");
     }
     
-    // Test if we can reach Cloudinary (just for validation)
     const testUrl = `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/w_100/sample`;
     
     fetch(testUrl)
@@ -60,7 +56,6 @@ const ImageUploadDemo = () => {
       });
   }, []);
   
-  // Fetch products for the dropdown
   const { data: products, isLoading } = useQuery({
     queryKey: ['products'],
     queryFn: getAllProducts,
@@ -82,6 +77,10 @@ const ImageUploadDemo = () => {
               <CardTitle>Image Upload Demo</CardTitle>
               <CardDescription>
                 Upload an image to Cloudinary and associate it with a product
+              </CardDescription>
+              <CardDescription className="text-yellow-600 mt-2">
+                <strong>Important:</strong> Make sure your upload preset (<code>{CLOUDINARY_UPLOAD_PRESET}</code>) is 
+                properly configured for unsigned uploads in your Cloudinary dashboard
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
