@@ -28,6 +28,11 @@ function App() {
       window.addEventListener('error', (event) => {
         console.error('Global error caught:', event.error);
       });
+      
+      // Add a navigation error handler
+      window.addEventListener('unhandledrejection', (event) => {
+        console.error('Unhandled promise rejection:', event.reason);
+      });
     };
     
     handleErrors();
@@ -45,16 +50,16 @@ function App() {
         <Route path="/bids" element={<UserBids />} />
         <Route path="/admin" element={<Admin />} />
         <Route path="/upload" element={<ImageUploadDemo />} />
-        <Route path="/404" element={<NotFound />} />
         
-        {/* Redirect /product/:id (wrong path) to /products/:id (correct path) using the wrapper component */}
+        {/* Handle common redirect cases */}
         <Route path="/product/:id" element={<ProductRedirect />} />
-        
-        {/* Let's add a redirect for /my-bids to /bids to handle any old links */}
         <Route path="/my-bids" element={<Navigate to="/bids" replace />} />
         
-        {/* Catch all other routes */}
-        <Route path="*" element={<Navigate to="/404" replace />} />
+        {/* Dedicated 404 route that renders the NotFound component */}
+        <Route path="/404" element={<NotFound />} />
+        
+        {/* Catch all other routes and redirect to products instead of 404 */}
+        <Route path="*" element={<Navigate to="/products" replace />} />
       </Routes>
     </Router>
   );

@@ -8,13 +8,13 @@ interface ImageErrorAlertProps {
 
 const ImageErrorAlert = ({ onRetryClick }: ImageErrorAlertProps) => {
   return (
-    <Alert variant="destructive" className="mb-4">
-      <AlertTitle>Image Loading Issue</AlertTitle>
+    <Alert variant="default" className="mb-4 border-amber-200 bg-amber-50 text-amber-800">
+      <AlertTitle className="text-amber-800">Image Loading Issue</AlertTitle>
       <AlertDescription className="flex flex-col space-y-2">
-        <p>We're having trouble loading product images.</p>
+        <p>We're having trouble loading some product images. This won't affect your browsing experience.</p>
         <button 
           onClick={onRetryClick}
-          className="flex items-center justify-center space-x-2 bg-destructive/10 text-destructive hover:bg-destructive/20 py-1 px-2 rounded text-sm"
+          className="flex items-center justify-center space-x-2 bg-amber-100 text-amber-800 hover:bg-amber-200 py-1 px-2 rounded text-sm w-fit"
         >
           <RefreshCcw className="h-4 w-4 mr-1" />
           Retry Loading Images

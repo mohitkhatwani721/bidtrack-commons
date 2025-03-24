@@ -11,6 +11,7 @@ export const useImageLoading = (
 ) => {
   const [imagesLoaded, setImagesLoaded] = useState<Record<string, boolean>>({});
   const isMounted = useRef(true);
+  const toastShown = useRef(false);
   
   // Preload all images with full quality
   useEffect(() => {
@@ -25,6 +26,16 @@ export const useImageLoading = (
           // Check if main image loaded, if not switch to fallback
           if (loadStatus[activeImage] === false) {
             handleImageError(activeImage);
+          }
+          
+          // Only show toast once per session
+          const hasFailedImages = Object.values(loadStatus).some(status => status === false);
+          if (hasFailedImages && !toastShown.current) {
+            toastShown.current = true;
+            toast.info("Some images are using placeholders for better browsing experience", {
+              id: "image-fallback-info",
+              duration: 3000
+            });
           }
         }
       } catch (error) {
@@ -45,6 +56,7 @@ export const useImageLoading = (
 export const useImageErrorHandling = (fallbackImage: string) => {
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
   const [retryCount, setRetryCount] = useState(0);
+  const toastShown = useRef(false);
   
   // Improved error handling for image loading
   const handleImageError = (url: string) => {
@@ -52,11 +64,14 @@ export const useImageErrorHandling = (fallbackImage: string) => {
     
     setImageErrors(prev => ({ ...prev, [url]: true }));
     
-    // If the main image failed to load, use fallback
-    toast.error("Unable to load product image. Using placeholder instead.", {
-      id: "image-error",
-      duration: 3000
-    });
+    // Only show toast once per session to avoid spamming
+    if (!toastShown.current) {
+      toastShown.current = true;
+      toast.info("Using placeholder images where needed", {
+        id: "image-error",
+        duration: 3000
+      });
+    }
   };
   
   // Retry loading images with a different approach
@@ -65,6 +80,7 @@ export const useImageErrorHandling = (fallbackImage: string) => {
     
     // Clear error states and reset loaded states
     setImageErrors({});
+    toastShown.current = false;
     
     // Increment retry counter to trigger reloading
     setRetryCount(prev => prev + 1);
