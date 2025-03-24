@@ -11,7 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Loader2, Upload, Image as ImageIcon, AlertCircle, CheckCircle, XCircle } from "lucide-react";
+import { Loader2, Upload, Image as ImageIcon, AlertCircle, CheckCircle, XCircle, ExternalLink } from "lucide-react";
 import { updateProductImage } from "@/lib/supabase/products";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import Spinner from "@/components/ui/loading/Spinner";
@@ -34,6 +34,7 @@ const ImageUploader = ({
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isConfigValid, setIsConfigValid] = useState<boolean | null>(null);
+  const [isPresetError, setIsPresetError] = useState(false);
   
   // Check configuration on mount
   useEffect(() => {
@@ -61,6 +62,7 @@ const ImageUploader = ({
     
     // Clear previous errors
     setUploadError(null);
+    setIsPresetError(false);
     
     // Check if configuration is valid
     if (isConfigValid === false) {
@@ -134,6 +136,13 @@ const ImageUploader = ({
       console.error("Error uploading image:", error);
       
       if (error instanceof Error) {
+        // Check if this is a preset configuration error
+        const errorMessage = error.message.toLowerCase();
+        if (errorMessage.includes('preset') && 
+            (errorMessage.includes('whitelist') || errorMessage.includes('unsigned'))) {
+          setIsPresetError(true);
+        }
+        
         setUploadError(error.message);
         toast.error(`Upload failed: ${error.message}`);
       } else {
@@ -151,6 +160,10 @@ const ImageUploader = ({
     if (fileInput) fileInput.click();
   };
   
+  const openCloudinaryDashboard = () => {
+    window.open('https://console.cloudinary.com/settings/c-XXXXX/upload', '_blank');
+  };
+  
   return (
     <div className={`space-y-4 ${className}`}>
       {isConfigValid === false && (
@@ -163,7 +176,34 @@ const ImageUploader = ({
         </Alert>
       )}
       
-      {isConfigValid === true && (
+      {isPresetError && (
+        <Alert variant="destructive" className="bg-amber-50 border-amber-200 text-amber-800">
+          <AlertCircle className="h-4 w-4 text-amber-800" />
+          <AlertTitle className="text-amber-800 font-medium">Upload Preset Configuration Error</AlertTitle>
+          <AlertDescription className="text-amber-700">
+            <p className="mb-2">Your upload preset <code className="bg-amber-100 px-1 rounded">{CLOUDINARY_UPLOAD_PRESET}</code> is not properly configured for unsigned uploads.</p>
+            <p className="mb-2 font-medium">To fix this:</p>
+            <ol className="list-decimal pl-5 space-y-1 mb-3">
+              <li>Log in to your Cloudinary dashboard</li>
+              <li>Go to Settings &gt; Upload &gt; Upload presets</li>
+              <li>Find the preset named <code className="bg-amber-100 px-1 rounded">{CLOUDINARY_UPLOAD_PRESET}</code> or create a new one</li>
+              <li>Set "Signing Mode" to "Unsigned"</li>
+              <li>Save your changes</li>
+            </ol>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="mt-2 border-amber-300 text-amber-800 hover:bg-amber-100"
+              onClick={openCloudinaryDashboard}
+            >
+              <ExternalLink className="h-3 w-3 mr-1" />
+              Open Cloudinary Dashboard
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
+      
+      {isConfigValid === true && !isPresetError && (
         <Alert variant="default" className="bg-green-50 border-green-200">
           <CheckCircle className="h-4 w-4 text-green-600" />
           <AlertTitle className="text-green-700">Cloudinary Configuration Valid</AlertTitle>
@@ -205,7 +245,7 @@ const ImageUploader = ({
         </div>
       </div>
       
-      {uploadError && (
+      {uploadError && !isPresetError && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Upload Error</AlertTitle>

@@ -1,4 +1,3 @@
-
 // Cloudinary configuration
 export const CLOUDINARY_CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || 'di8rdvt2y';
 export const CLOUDINARY_API_KEY = import.meta.env.VITE_CLOUDINARY_API_KEY || '293774813922618';
@@ -84,6 +83,31 @@ export const buildCloudinaryUrl = (
 };
 
 /**
+ * Check if the Cloudinary response contains a preset configuration error
+ */
+const isPresetConfigurationError = (error: any): boolean => {
+  if (!error || !error.message) return false;
+  
+  const errorMsg = error.message.toLowerCase();
+  return (
+    errorMsg.includes('preset') && 
+    (errorMsg.includes('whitelist') || errorMsg.includes('unsigned'))
+  );
+};
+
+/**
+ * Provides guidance for resolving upload preset configuration issues
+ */
+const getPresetErrorGuidance = (preset: string): string => {
+  return `Your upload preset "${preset}" is not configured for unsigned uploads. Please:
+1. Log in to your Cloudinary dashboard
+2. Go to Settings > Upload > Upload presets
+3. Edit "${preset}" or create a new preset
+4. Set "Signing Mode" to "Unsigned"
+5. Save changes and update your .env file if needed`;
+};
+
+/**
  * Uploads an image to Cloudinary (client-side) with product association
  */
 export const uploadToCloudinary = async (file: File, productId?: string): Promise<string | null> => {
@@ -143,6 +167,11 @@ export const uploadToCloudinary = async (file: File, productId?: string): Promis
       console.error(`Upload failed with status ${response.status}:`, data);
       
       if (data && data.error && data.error.message) {
+        // Special handling for preset configuration errors
+        if (isPresetConfigurationError(data.error)) {
+          const guidance = getPresetErrorGuidance(CLOUDINARY_UPLOAD_PRESET);
+          throw new Error(`${data.error.message}\n\n${guidance}`);
+        }
         throw new Error(`Cloudinary error: ${data.error.message}`);
       } else {
         throw new Error(`Upload failed with status ${response.status}`);
