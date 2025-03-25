@@ -55,22 +55,10 @@ export const buildCloudinaryUrl = (
     }
     
     // Build transformation string with performance optimizations
-    let transformations = `w_${width},h_${height},q_${quality},c_${crop},f_${format},fl_progressive`;
+    const transformations = `w_${width},h_${height},q_${quality},c_${crop},f_${format},fl_progressive`;
     
-    // Add fetch format for browser-optimized delivery
-    if (fetchFormat) {
-      transformations += `,fetch_format_${fetchFormat}`;
-    }
-    
-    // Add loading strategy
-    if (loading === 'eager') {
-      transformations += ',loading_eager';
-    } else {
-      transformations += ',loading_lazy';
-    }
-    
-    // Return full URL
-    const url = `${CLOUDINARY_BASE_URL}/${transformations}/${publicId}`;
+    // Return full URL - FIXED FORMAT
+    const url = `${CLOUDINARY_BASE_URL}/${transformations}/v1/${publicId}`;
     
     // Cache the result
     transformationCache[cacheKey] = url;
@@ -214,6 +202,7 @@ export const fetchViaCloudinary = (
     // Enhanced transformations for better performance
     const transformations = `w_${width},h_${height},q_${quality},c_fill,f_auto,fl_progressive`;
     
+    // FIX: Use the correct fetch URL format
     return `${CLOUDINARY_BASE_URL}/${transformations}/fetch/${fetchUrl}`;
   } catch (error) {
     console.error("Error creating fetch URL:", error);

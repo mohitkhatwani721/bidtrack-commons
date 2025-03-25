@@ -11,7 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Loader2, Upload, Image as ImageIcon, AlertCircle, CheckCircle, XCircle, ExternalLink } from "lucide-react";
+import { Loader2, Upload, Image as ImageIcon, AlertCircle, CheckCircle, XCircle, ExternalLink, Copy, ArrowUpRight } from "lucide-react";
 import { updateProductImage } from "@/lib/supabase/products";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import Spinner from "@/components/ui/loading/Spinner";
@@ -35,6 +35,8 @@ const ImageUploader = ({
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isConfigValid, setIsConfigValid] = useState<boolean | null>(null);
   const [isPresetError, setIsPresetError] = useState(false);
+  const [rawPublicId, setRawPublicId] = useState<string | null>(null);
+  const [directCloudinaryUrl, setDirectCloudinaryUrl] = useState<string | null>(null);
   
   // Check configuration on mount
   useEffect(() => {
@@ -60,9 +62,11 @@ const ImageUploader = ({
     const file = e.target.files?.[0];
     if (!file) return;
     
-    // Clear previous errors
+    // Clear previous errors and states
     setUploadError(null);
     setIsPresetError(false);
+    setRawPublicId(null);
+    setDirectCloudinaryUrl(null);
     
     // Check if configuration is valid
     if (isConfigValid === false) {
@@ -109,6 +113,11 @@ const ImageUploader = ({
       }
       
       setUploadProgress(100);
+      setRawPublicId(publicId);
+      
+      // Store the direct Cloudinary URL for testing
+      const directUrl = `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/v1/${publicId}`;
+      setDirectCloudinaryUrl(directUrl);
       
       // Generate the full URL from public ID - with eager loading for this image
       const imageUrl = buildCloudinaryUrl(publicId, {
@@ -161,7 +170,16 @@ const ImageUploader = ({
   };
   
   const openCloudinaryDashboard = () => {
-    window.open('https://console.cloudinary.com/settings/c-XXXXX/upload', '_blank');
+    window.open('https://console.cloudinary.com/console/media_library', '_blank');
+  };
+  
+  const copyUrlToClipboard = (url: string) => {
+    navigator.clipboard.writeText(url);
+    toast.success("URL copied to clipboard");
+  };
+  
+  const openUrlInNewTab = (url: string) => {
+    window.open(url, '_blank');
   };
   
   return (
@@ -264,12 +282,81 @@ const ImageUploader = ({
         </div>
       )}
       
+      {/* Test URLs section - Display Direct Cloudinary URL */}
+      {rawPublicId && directCloudinaryUrl && (
+        <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-md">
+          <h3 className="text-blue-800 font-medium mb-2">Cloudinary Testing URLs</h3>
+          
+          <div className="space-y-4">
+            <div>
+              <p className="text-sm text-blue-700 mb-1">Direct Cloudinary URL (Without Transformations):</p>
+              <div className="flex gap-2">
+                <Input 
+                  value={directCloudinaryUrl} 
+                  readOnly 
+                  className="text-xs font-mono flex-1 bg-white border-blue-200"
+                />
+                <Button size="icon" variant="outline" className="shrink-0" onClick={() => copyUrlToClipboard(directCloudinaryUrl)}>
+                  <Copy className="h-4 w-4" />
+                </Button>
+                <Button size="icon" variant="outline" className="shrink-0" onClick={() => openUrlInNewTab(directCloudinaryUrl)}>
+                  <ArrowUpRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+            
+            <div>
+              <p className="text-sm text-blue-700 mb-1">Transformed URL (With Image Optimizations):</p>
+              <div className="flex gap-2">
+                <Input 
+                  value={uploadedImage || ''} 
+                  readOnly 
+                  className="text-xs font-mono flex-1 bg-white border-blue-200"
+                />
+                <Button size="icon" variant="outline" className="shrink-0" onClick={() => copyUrlToClipboard(uploadedImage || '')}>
+                  <Copy className="h-4 w-4" />
+                </Button>
+                <Button size="icon" variant="outline" className="shrink-0" onClick={() => openUrlInNewTab(uploadedImage || '')}>
+                  <ArrowUpRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+            
+            <div>
+              <p className="text-sm text-blue-700 mb-1">Public ID:</p>
+              <div className="p-2 bg-white rounded border border-blue-100 text-xs font-mono break-all">
+                {rawPublicId}
+              </div>
+            </div>
+            
+            <Alert className="bg-white border-blue-100 mt-2">
+              <AlertCircle className="h-4 w-4 text-blue-500" />
+              <AlertTitle className="text-blue-700 text-sm">Troubleshooting Tip</AlertTitle>
+              <AlertDescription className="text-xs text-blue-600">
+                If the transformed URL doesn't work, try the direct URL. If neither works, your image may not have been properly uploaded to Cloudinary.
+              </AlertDescription>
+            </Alert>
+          </div>
+        </div>
+      )}
+      
       {uploadedImage && (
         <div className="mt-4 rounded-md border border-border overflow-hidden">
+          <div className="p-2 bg-muted/30 border-b flex justify-between items-center">
+            <span className="text-sm font-medium">Uploaded Image Preview</span>
+            <div className="flex gap-1">
+              <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openUrlInNewTab(uploadedImage)}>
+                <ArrowUpRight className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          </div>
           <img 
             src={uploadedImage} 
             alt="Uploaded image" 
             className="w-full h-auto max-h-[300px] object-contain"
+            onError={() => {
+              toast.error("Failed to load image preview. The upload might have failed.");
+            }}
           />
         </div>
       )}

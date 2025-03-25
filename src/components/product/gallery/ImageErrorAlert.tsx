@@ -34,7 +34,7 @@ const ImageErrorAlert = ({
           {isSamsungImage 
             ? "We're having trouble loading Samsung product images." 
             : isCloudinaryImage
-              ? "We're having trouble loading your uploaded image from Cloudinary. This could be due to processing delays, incorrect URL formatting, or missing permissions."
+              ? "We're having trouble loading your uploaded image from Cloudinary. This could be due to processing delays, incorrect URL formatting, or the image may have been deleted."
               : "We're having trouble loading some product images."}
           {" "}You can try reloading or upload a relevant image instead.
         </p>
@@ -46,16 +46,29 @@ const ImageErrorAlert = ({
               <li>Check if the image is uploaded correctly in your Cloudinary dashboard</li>
               <li>Verify that your upload preset allows public access to uploaded images</li>
               <li>Make sure the public_id is correct and the image hasn't been deleted</li>
+              <li><strong>Common 404 Error:</strong> If you get a "page can't be found" error, the URL format might be incorrect</li>
+              <li>Try checking your Cloudinary Media Library to verify if the image exists</li>
             </ul>
-            <Button 
-              size="sm" 
-              variant="outline" 
-              onClick={openCloudinaryDocs}
-              className="mt-2 text-xs bg-white border-amber-300 text-amber-800 hover:bg-amber-50"
-            >
-              <ExternalLink className="h-3 w-3 mr-1" />
-              View Cloudinary Docs
-            </Button>
+            <div className="flex gap-2 mt-2">
+              <Button 
+                size="sm" 
+                variant="outline" 
+                onClick={openCloudinaryDocs}
+                className="text-xs bg-white border-amber-300 text-amber-800 hover:bg-amber-50"
+              >
+                <ExternalLink className="h-3 w-3 mr-1" />
+                View Cloudinary Docs
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => window.open('https://console.cloudinary.com/console/media_library', '_blank')}
+                className="text-xs bg-white border-amber-300 text-amber-800 hover:bg-amber-50"
+              >
+                <ExternalLink className="h-3 w-3 mr-1" />
+                Check Media Library
+              </Button>
+            </div>
           </div>
         )}
         
