@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
@@ -7,10 +8,12 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useQuery } from "@tanstack/react-query";
 import { getAllProducts } from "@/lib/supabase/products";
-import { Loader2, InfoIcon, HelpCircle, CheckCircle } from "lucide-react";
+import { Loader2, InfoIcon, HelpCircle, CheckCircle, ExternalLink, Copy, ArrowUpRight } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_UPLOAD_PRESET } from "@/lib/cloudinary/client";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 const ImageUploadDemo = () => {
   const [uploadedImageInfo, setUploadedImageInfo] = useState<{publicId: string, url: string} | null>(null);
@@ -64,6 +67,19 @@ const ImageUploadDemo = () => {
   const handleImageUploaded = (publicId: string, url: string) => {
     console.log("Image upload successful:", { publicId, url });
     setUploadedImageInfo({ publicId, url });
+  };
+
+  const copyUrlToClipboard = () => {
+    if (uploadedImageInfo?.url) {
+      navigator.clipboard.writeText(uploadedImageInfo.url);
+      toast.success("URL copied to clipboard");
+    }
+  };
+
+  const openImageInNewTab = () => {
+    if (uploadedImageInfo?.url) {
+      window.open(uploadedImageInfo.url, '_blank');
+    }
   };
   
   return (
@@ -167,9 +183,41 @@ const ImageUploadDemo = () => {
                 <div className="mt-6 p-4 bg-muted/30 rounded-md">
                   <h3 className="text-lg font-medium mb-2">Upload Information</h3>
                   <p><strong>Public ID:</strong> {uploadedImageInfo.publicId}</p>
-                  <p className="mt-1"><strong>URL:</strong> <span className="text-sm break-all">{uploadedImageInfo.url}</span></p>
+                  
+                  <div className="mt-4">
+                    <Label htmlFor="cloudinary-url" className="font-medium">Cloudinary URL (for testing):</Label>
+                    <div className="flex mt-1 gap-2">
+                      <Input 
+                        id="cloudinary-url"
+                        value={uploadedImageInfo.url} 
+                        readOnly 
+                        className="font-mono text-sm flex-1"
+                      />
+                      <Button size="icon" variant="outline" onClick={copyUrlToClipboard} title="Copy URL">
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                      <Button size="icon" variant="outline" onClick={openImageInNewTab} title="Open in new tab">
+                        <ArrowUpRight className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-4">
+                    <Button 
+                      onClick={openImageInNewTab}
+                      variant="secondary"
+                      className="flex items-center gap-2"
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                      Test Image in New Tab
+                    </Button>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Click to open the image URL in a new browser tab to verify it loads correctly
+                    </p>
+                  </div>
+                  
                   {selectedProductId && selectedProductId !== "none" && (
-                    <p className="mt-1"><strong>Associated with Product ID:</strong> <span className="text-sm">{selectedProductId}</span></p>
+                    <p className="mt-3"><strong>Associated with Product ID:</strong> <span className="text-sm">{selectedProductId}</span></p>
                   )}
                 </div>
               )}

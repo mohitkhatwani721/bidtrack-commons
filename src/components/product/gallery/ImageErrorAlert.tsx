@@ -28,7 +28,7 @@ const ImageErrorAlert = ({
           {isSamsungImage 
             ? "We're having trouble loading Samsung product images." 
             : isCloudinaryImage
-              ? "We're having trouble loading your uploaded image from Cloudinary."
+              ? "We're having trouble loading your uploaded image from Cloudinary. This could be due to processing delays or incorrect URL formatting."
               : "We're having trouble loading some product images."}
           {" "}You can try reloading or upload a relevant image instead.
         </p>
