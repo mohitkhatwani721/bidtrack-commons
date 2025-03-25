@@ -1,3 +1,4 @@
+
 import * as React from "react"
 import * as TabsPrimitive from "@radix-ui/react-tabs"
 
@@ -50,4 +51,55 @@ const TabsContent = React.forwardRef<
 ))
 TabsContent.displayName = TabsPrimitive.Content.displayName
 
-export { Tabs, TabsList, TabsTrigger, TabsContent }
+// Creating a styled variant specifically for our image gallery
+const ImageGalleryTabs = React.forwardRef<
+  React.ElementRef<typeof TabsPrimitive.Root>,
+  React.ComponentPropsWithoutRef<typeof TabsPrimitive.Root>
+>(({ className, ...props }, ref) => (
+  <Tabs
+    ref={ref}
+    className={cn("w-full", className)}
+    {...props}
+  />
+))
+ImageGalleryTabs.displayName = "ImageGalleryTabs"
+
+const ImageGalleryTabsList = React.forwardRef<
+  React.ElementRef<typeof TabsPrimitive.List>,
+  React.ComponentPropsWithoutRef<typeof TabsPrimitive.List>
+>(({ className, ...props }, ref) => (
+  <TabsList
+    ref={ref}
+    className={cn(
+      "w-full flex justify-center bg-slate-100 rounded-lg mb-6",
+      className
+    )}
+    {...props}
+  />
+))
+ImageGalleryTabsList.displayName = "ImageGalleryTabsList"
+
+const ImageGalleryTabsTrigger = React.forwardRef<
+  React.ElementRef<typeof TabsPrimitive.Trigger>,
+  React.ComponentPropsWithoutRef<typeof TabsPrimitive.Trigger>
+>(({ className, ...props }, ref) => (
+  <TabsTrigger
+    ref={ref}
+    className={cn(
+      "flex-1 py-3 text-base data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-md",
+      className
+    )}
+    {...props}
+  />
+))
+ImageGalleryTabsTrigger.displayName = "ImageGalleryTabsTrigger"
+
+export { 
+  Tabs, 
+  TabsList, 
+  TabsTrigger, 
+  TabsContent, 
+  ImageGalleryTabs,
+  ImageGalleryTabsList,
+  ImageGalleryTabsTrigger 
+}
