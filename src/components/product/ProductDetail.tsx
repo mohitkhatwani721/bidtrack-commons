@@ -4,7 +4,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Product } from "@/lib/types";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ImagePlus, Camera } from "lucide-react";
+import { ArrowLeft, ImagePlus, Camera, RefreshCw } from "lucide-react";
 import ProductImageGallery from "./ProductImageGallery";
 import ProductHeader from "./ProductHeader";
 import ProductStats from "./ProductStats";
@@ -24,6 +24,7 @@ const ProductDetail = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -50,6 +51,7 @@ const ProductDetail = () => {
         
         if (fetchedProduct) {
           console.log("Product found:", fetchedProduct);
+          console.log("Product image URL:", fetchedProduct.imageUrl);
           setProduct(fetchedProduct);
         } else {
           console.error("Product not found with ID:", id);
@@ -66,7 +68,7 @@ const ProductDetail = () => {
     };
     
     fetchProduct();
-  }, [id]);
+  }, [id, refreshTrigger]);
 
   const handleImageUploaded = (publicId: string, url: string) => {
     // Close the dialog
@@ -81,7 +83,17 @@ const ProductDetail = () => {
       
       // Notify the user
       toast.success("Product image updated successfully");
+      
+      // Trigger a refresh after a short delay to ensure DB update is complete
+      setTimeout(() => {
+        setRefreshTrigger(prev => prev + 1);
+      }, 1000);
     }
+  };
+  
+  const handleForceRefresh = () => {
+    setRefreshTrigger(prev => prev + 1);
+    toast.info("Refreshing product data...");
   };
 
   // If we're still loading, show a skeleton
@@ -129,25 +141,44 @@ const ProductDetail = () => {
               Go to Upload Demo
             </Button>
 
-            <Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
-              <DialogTrigger asChild>
-                <Button variant="default" size="sm">
-                  <ImagePlus className="h-4 w-4 mr-2" />
-                  Upload Product Image
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[425px]">
-                <DialogHeader>
-                  <DialogTitle>Update Product Image</DialogTitle>
-                </DialogHeader>
-                <ImageUploader 
-                  productId={product.id} 
-                  onImageUploaded={handleImageUploaded}
-                  buttonText="Upload New Image"
-                />
-              </DialogContent>
-            </Dialog>
+            <div className="flex space-x-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleForceRefresh}
+                className="text-blue-600"
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Refresh
+              </Button>
+
+              <Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="default" size="sm">
+                    <ImagePlus className="h-4 w-4 mr-2" />
+                    Upload Product Image
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[425px]">
+                  <DialogHeader>
+                    <DialogTitle>Update Product Image</DialogTitle>
+                  </DialogHeader>
+                  <ImageUploader 
+                    productId={product.id} 
+                    onImageUploaded={handleImageUploaded}
+                    buttonText="Upload New Image"
+                  />
+                </DialogContent>
+              </Dialog>
+            </div>
           </div>
+          
+          {product.imageUrl && (
+            <div className="mt-4 p-3 bg-slate-50 border border-slate-200 rounded text-xs font-mono truncate">
+              <p className="text-slate-500 mb-1">Current image URL:</p>
+              <p className="overflow-x-auto whitespace-nowrap">{product.imageUrl}</p>
+            </div>
+          )}
         </div>
         
         <motion.div 

@@ -49,14 +49,17 @@ export const useImageGallery = () => {
         }
 
         console.log("Fetched products with images:", products?.length || 0);
-        console.log("Sample image URLs:", products?.slice(0, 3).map(p => p.image_url));
         
-        // Process the results with more inclusive detection
+        if (products && products.length > 0) {
+          console.log("Sample image URLs:", products.slice(0, 3).map(p => p.image_url));
+        }
+        
+        // Process the results with more robust detection
         const cloudinaryImages: CloudinaryImage[] = [];
         
         for (const product of (products || [])) {
           if (product.image_url) {
-            // More inclusive check for Cloudinary URLs
+            // More inclusive check for Cloudinary URLs (fixed)
             const isCloudinaryImage = product.image_url.includes('cloudinary.com') || 
                                      product.image_url.includes('res.cloudinary.com');
             
@@ -70,14 +73,22 @@ export const useImageGallery = () => {
               if (product.image_url.includes('/upload/')) {
                 const uploadIndex = product.image_url.indexOf('/upload/');
                 if (uploadIndex !== -1) {
-                  // Get everything after /upload/ and possibly after any transformation segments
+                  // Get everything after /upload/ and possibly after transformations
                   const afterUpload = product.image_url.substring(uploadIndex + 8);
                   
-                  // Handle different URL patterns
+                  // Handle v1/ pattern
                   if (afterUpload.includes('/v1/')) {
                     publicId = afterUpload.substring(afterUpload.indexOf('/v1/') + 4);
                   } else if (afterUpload.startsWith('v1/')) {
                     publicId = afterUpload.substring(3);
+                  } else if (afterUpload.includes('asset/bid/')) {
+                    // Handle the pattern we're seeing in your uploaded images
+                    const assetIndex = afterUpload.indexOf('asset/bid/');
+                    if (assetIndex !== -1) {
+                      publicId = 'asset/bid/' + afterUpload.substring(assetIndex + 10);
+                    } else {
+                      publicId = afterUpload;
+                    }
                   } else {
                     // For URLs without version identifier
                     publicId = afterUpload;
@@ -107,6 +118,8 @@ export const useImageGallery = () => {
                   console.log("Created direct URL:", directUrl);
                 }
               }
+            } else {
+              console.log("Non-Cloudinary image URL:", product.image_url);
             }
           }
         }
