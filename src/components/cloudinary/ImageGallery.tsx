@@ -36,7 +36,7 @@ const ImageGallery = () => {
       try {
         setLoading(true);
         
-        // This approach fetches products with image_url containing cloudinary
+        // Improved query to fetch all products including those with Cloudinary images
         const { data: products, error } = await supabase
           .from('products')
           .select('id, name, image_url, created_at')
@@ -49,42 +49,71 @@ const ImageGallery = () => {
           setLoading(false);
           return;
         }
+
+        console.log("Fetched products with images:", products?.length || 0);
+        console.log("Sample image URLs:", products?.slice(0, 3).map(p => p.image_url));
         
-        // Process the results
+        // Process the results with more inclusive detection
         const cloudinaryImages: CloudinaryImage[] = [];
         
-        for (const product of products) {
-          if (product.image_url && isCloudinaryUrl(product.image_url)) {
-            // Extract public ID from Cloudinary URL
-            const urlParts = product.image_url.split('/');
-            const uploadIndex = urlParts.indexOf('upload');
+        for (const product of (products || [])) {
+          if (product.image_url) {
+            // More inclusive check for Cloudinary URLs
+            const isCloudinaryImage = product.image_url.includes('cloudinary.com') || 
+                                     product.image_url.includes('res.cloudinary.com');
             
-            if (uploadIndex !== -1) {
-              // Find the public ID portion - it comes after upload/v1/ or just upload/
-              const publicIdWithTransformations = urlParts.slice(uploadIndex + 1).join('/');
+            if (isCloudinaryImage) {
+              console.log("Found Cloudinary image:", product.image_url);
               
-              // Clean up the public ID by removing any transformations
-              const publicId = publicIdWithTransformations.replace(/^v\d+\//, '');
+              // Extract public ID from Cloudinary URL with improved parsing
+              let publicId = '';
               
-              // Generate a direct URL without transformations for display
-              const directUrl = `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/v1/${publicId}`;
-              
-              cloudinaryImages.push({
-                id: `img_${product.id}`,
-                publicId,
-                url: directUrl,
-                createdAt: product.created_at || new Date().toISOString(),
-                productId: product.id,
-                product: {
-                  name: product.name,
-                  id: product.id
+              // Try to extract public ID with different patterns
+              if (product.image_url.includes('/upload/')) {
+                const uploadIndex = product.image_url.indexOf('/upload/');
+                if (uploadIndex !== -1) {
+                  // Get everything after /upload/ and possibly after any transformation segments
+                  const afterUpload = product.image_url.substring(uploadIndex + 8);
+                  
+                  // Handle different URL patterns
+                  if (afterUpload.includes('/v1/')) {
+                    publicId = afterUpload.substring(afterUpload.indexOf('/v1/') + 4);
+                  } else if (afterUpload.startsWith('v1/')) {
+                    publicId = afterUpload.substring(3);
+                  } else {
+                    // For URLs without version identifier
+                    publicId = afterUpload;
+                  }
+                  
+                  // Remove any query parameters
+                  if (publicId.includes('?')) {
+                    publicId = publicId.substring(0, publicId.indexOf('?'));
+                  }
+                  
+                  // Generate a direct URL without transformations for display
+                  const directUrl = `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/v1/${publicId}`;
+                  
+                  cloudinaryImages.push({
+                    id: `img_${product.id}`,
+                    publicId,
+                    url: directUrl,
+                    createdAt: product.created_at || new Date().toISOString(),
+                    productId: product.id,
+                    product: {
+                      name: product.name,
+                      id: product.id
+                    }
+                  });
+                  
+                  console.log("Extracted public ID:", publicId);
+                  console.log("Created direct URL:", directUrl);
                 }
-              });
+              }
             }
           }
         }
         
-        console.log("Found Cloudinary images:", cloudinaryImages.length);
+        console.log("Total Cloudinary images found:", cloudinaryImages.length);
         setImages(cloudinaryImages);
       } catch (error) {
         console.error("Error processing images:", error);

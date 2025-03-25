@@ -79,7 +79,9 @@ const ImageUploadDemo = () => {
     );
     
     setGalleryRefreshTrigger(prev => prev + 1);
-    setActiveTab("gallery");
+    setTimeout(() => {
+      setActiveTab("gallery");
+    }, 1500);
   };
 
   const copyUrlToClipboard = () => {

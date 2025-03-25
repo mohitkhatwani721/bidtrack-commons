@@ -96,6 +96,27 @@ const getPresetErrorGuidance = (preset: string): string => {
 };
 
 /**
+ * Checks if a URL is a Cloudinary URL
+ */
+export const isCloudinaryUrl = (url: string): boolean => {
+  if (!url) return false;
+  
+  try {
+    // More robust check that handles various Cloudinary URL patterns
+    const isCloudinary = url.includes('cloudinary.com') || url.includes('res.cloudinary.com');
+    
+    if (isCloudinary) {
+      console.log(`Detected Cloudinary URL: ${url.substring(0, 50)}...`);
+    }
+    
+    return isCloudinary;
+  } catch (error) {
+    console.error('Error checking if URL is Cloudinary:', error);
+    return false;
+  }
+};
+
+/**
  * Uploads an image to Cloudinary (client-side) with product association
  */
 export const uploadToCloudinary = async (file: File, productId?: string): Promise<string | null> => {
@@ -103,6 +124,7 @@ export const uploadToCloudinary = async (file: File, productId?: string): Promis
     // Debug logs to help diagnose issues
     console.log(`Starting upload to Cloudinary with preset: ${CLOUDINARY_UPLOAD_PRESET}`);
     console.log(`Using cloud name: ${CLOUDINARY_CLOUD_NAME}`);
+    console.log(`Product ID for association: ${productId || 'none'}`);
     
     // Validate configuration
     if (!CLOUDINARY_CLOUD_NAME) {
@@ -141,6 +163,8 @@ export const uploadToCloudinary = async (file: File, productId?: string): Promis
     });
 
     const responseText = await response.text();
+    console.log("Cloudinary raw response:", responseText.substring(0, 500));
+    
     let data;
     
     try {
@@ -169,7 +193,24 @@ export const uploadToCloudinary = async (file: File, productId?: string): Promis
     console.log('Upload successful:', data);
     
     if (data.public_id) {
-      return data.public_id; // Return the public_id for use with buildCloudinaryUrl
+      // If the product ID is provided, update the product with the new image URL
+      if (productId) {
+        // Import is intentionally inside the function to avoid circular dependencies
+        const { updateProductImage } = await import('@/lib/supabase/products');
+        
+        // Generate a full URL from the public ID for the product
+        const imageUrl = buildCloudinaryUrl(data.public_id, {
+          width: 800,
+          height: 600,
+          quality: 90
+        });
+        
+        // Update the product with the image URL
+        const updated = await updateProductImage(productId, imageUrl);
+        console.log(`Product image update result: ${updated ? 'success' : 'failed'}`);
+      }
+      
+      return data.public_id;
     } else {
       throw new Error('Upload succeeded but no public_id was returned');
     }
@@ -211,38 +252,6 @@ export const fetchViaCloudinary = (
 };
 
 /**
- * Checks if a URL is a Cloudinary URL
- */
-export const isCloudinaryUrl = (url: string): boolean => {
-  if (!url) return false;
-  
-  try {
-    // Check if the URL contains cloudinary.com
-    const isCloudinary = url.includes('cloudinary.com');
-    
-    if (isCloudinary) {
-      console.log(`Detected Cloudinary URL: ${url.substring(0, 50)}...`);
-    }
-    
-    return isCloudinary;
-  } catch (error) {
-    console.error('Error checking if URL is Cloudinary:', error);
-    return false;
-  }
-};
-
-/**
- * Check if Cloudinary configuration is valid
- */
-export const isCloudinaryConfigured = (): boolean => {
-  const isConfigured = Boolean(CLOUDINARY_CLOUD_NAME && CLOUDINARY_UPLOAD_PRESET);
-  console.log(`Cloudinary configuration check: ${isConfigured ? 'VALID' : 'INVALID'}`);
-  console.log(`- Cloud name: ${CLOUDINARY_CLOUD_NAME || 'MISSING'}`);
-  console.log(`- Upload preset: ${CLOUDINARY_UPLOAD_PRESET || 'MISSING'}`);
-  return isConfigured;
-};
-
-/**
  * Generates an optimized image URL with performance in mind
  */
 export const getOptimizedImageUrl = (
@@ -276,4 +285,15 @@ export const getOptimizedImageUrl = (
   
   // For external images, use Cloudinary's fetch capability
   return fetchViaCloudinary(url, { width, height, quality });
+};
+
+/**
+ * Check if Cloudinary configuration is valid
+ */
+export const isCloudinaryConfigured = (): boolean => {
+  const isConfigured = Boolean(CLOUDINARY_CLOUD_NAME && CLOUDINARY_UPLOAD_PRESET);
+  console.log(`Cloudinary configuration check: ${isConfigured ? 'VALID' : 'INVALID'}`);
+  console.log(`- Cloud name: ${CLOUDINARY_CLOUD_NAME || 'MISSING'}`);
+  console.log(`- Upload preset: ${CLOUDINARY_UPLOAD_PRESET || 'MISSING'}`);
+  return isConfigured;
 };
