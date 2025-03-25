@@ -7,7 +7,7 @@ import {
   CLOUDINARY_CLOUD_NAME,
   isCloudinaryConfigured,
   getOptimizedImageUrl
-} from "@/lib/cloudinary/client";
+} from "@/lib/cloudinary";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";

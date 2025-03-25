@@ -1,4 +1,3 @@
-
 import randomWords from 'random-words';
 import { 
   CLOUDINARY_CLOUD_NAME, 
@@ -8,7 +7,7 @@ import {
   fetchViaCloudinary,
   uploadToCloudinary as uploadToCloudinaryClient,
   getOptimizedImageUrl
-} from '@/lib/cloudinary/client';
+} from '@/lib/cloudinary';
 
 // Re-export Cloudinary utility functions
 export const isCloudinaryUrl = isCloudinaryUrlCheck;

@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { InfoIcon, HelpCircle, CheckCircle, Loader2 } from "lucide-react";
-import { CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_UPLOAD_PRESET } from "@/lib/cloudinary/client";
+import { CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_UPLOAD_PRESET, isCloudinaryConfigured } from "@/lib/cloudinary";
 import { toast } from "sonner";
 
 type ConfigStatus = "valid" | "invalid" | "incomplete" | "checking";
