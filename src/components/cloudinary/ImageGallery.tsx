@@ -1,15 +1,15 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase/client";
-import { Loader2, ExternalLink, LinkIcon, ShoppingBag, Search, Info, AlertCircle } from "lucide-react";
+import { Loader2, ExternalLink, LinkIcon, ShoppingBag, Search, Info, AlertCircle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { getProductById } from "@/lib/supabase/products";
-import { CLOUDINARY_CLOUD_NAME } from "@/lib/cloudinary/client";
+import { CLOUDINARY_CLOUD_NAME, isCloudinaryUrl } from "@/lib/cloudinary/client";
+import { toast } from "sonner";
 
 interface CloudinaryImage {
   id: string;
@@ -28,6 +28,7 @@ const ImageGallery = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [productView, setProductView] = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   // Fetch images that have been uploaded
   useEffect(() => {
@@ -35,18 +36,17 @@ const ImageGallery = () => {
       try {
         setLoading(true);
         
-        // This is a simplified approach - in a real app, you would have a table in your database
-        // to store the Cloudinary images with their product associations
-        // For this demo, we'll extract product images from the products table
-        
+        // This approach fetches products with image_url containing cloudinary
         const { data: products, error } = await supabase
           .from('products')
-          .select('id, name, image_url')
+          .select('id, name, image_url, created_at')
           .not('image_url', 'is', null)
           .order('created_at', { ascending: false });
         
         if (error) {
           console.error("Error fetching products with images:", error);
+          toast.error("Failed to load images");
+          setLoading(false);
           return;
         }
         
@@ -54,41 +54,54 @@ const ImageGallery = () => {
         const cloudinaryImages: CloudinaryImage[] = [];
         
         for (const product of products) {
-          if (product.image_url && product.image_url.includes('cloudinary.com')) {
+          if (product.image_url && isCloudinaryUrl(product.image_url)) {
             // Extract public ID from Cloudinary URL
             const urlParts = product.image_url.split('/');
-            const publicIdWithTransformations = urlParts.slice(urlParts.indexOf('upload') + 1).join('/');
+            const uploadIndex = urlParts.indexOf('upload');
             
-            // Clean up the public ID by removing any transformations
-            const publicId = publicIdWithTransformations.replace(/^v\d+\//, '');
-            
-            // Generate a direct URL without transformations
-            const directUrl = `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/v1/${publicId}`;
-            
-            cloudinaryImages.push({
-              id: `img_${product.id}`,
-              publicId,
-              url: directUrl,
-              createdAt: new Date().toISOString(), // We don't have the actual upload date
-              productId: product.id,
-              product: {
-                name: product.name,
-                id: product.id
-              }
-            });
+            if (uploadIndex !== -1) {
+              // Find the public ID portion - it comes after upload/v1/ or just upload/
+              const publicIdWithTransformations = urlParts.slice(uploadIndex + 1).join('/');
+              
+              // Clean up the public ID by removing any transformations
+              const publicId = publicIdWithTransformations.replace(/^v\d+\//, '');
+              
+              // Generate a direct URL without transformations for display
+              const directUrl = `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/v1/${publicId}`;
+              
+              cloudinaryImages.push({
+                id: `img_${product.id}`,
+                publicId,
+                url: directUrl,
+                createdAt: product.created_at || new Date().toISOString(),
+                productId: product.id,
+                product: {
+                  name: product.name,
+                  id: product.id
+                }
+              });
+            }
           }
         }
         
+        console.log("Found Cloudinary images:", cloudinaryImages.length);
         setImages(cloudinaryImages);
       } catch (error) {
         console.error("Error processing images:", error);
+        toast.error("Failed to process images");
       } finally {
         setLoading(false);
       }
     };
     
     fetchImages();
-  }, []);
+  }, [refreshTrigger]); // Re-fetch when refreshTrigger changes
+  
+  // Handle refresh button click
+  const handleRefresh = () => {
+    setRefreshTrigger(prev => prev + 1);
+    toast.info("Refreshing image gallery...");
+  };
   
   // Filter images based on search term
   const filteredImages = images.filter(image => {
@@ -97,8 +110,8 @@ const ImageGallery = () => {
     const searchLower = searchTerm.toLowerCase();
     return (
       image.publicId.toLowerCase().includes(searchLower) ||
-      image.product?.name.toLowerCase().includes(searchLower) ||
-      image.productId?.toLowerCase().includes(searchLower)
+      (image.product?.name.toLowerCase().includes(searchLower) || false) ||
+      (image.productId?.toLowerCase().includes(searchLower) || false)
     );
   });
   
@@ -135,18 +148,6 @@ const ImageGallery = () => {
     );
   }
 
-  if (images.length === 0) {
-    return (
-      <Alert className="bg-blue-50 border-blue-200 text-blue-800 my-8">
-        <Info className="h-4 w-4 text-blue-600" />
-        <AlertDescription className="text-blue-700">
-          <p className="font-medium">No Cloudinary images found</p>
-          <p className="text-sm mt-1">Upload some images using the upload tab to see them here.</p>
-        </AlertDescription>
-      </Alert>
-    );
-  }
-
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row gap-4 items-center justify-between mb-6">
@@ -162,6 +163,16 @@ const ImageGallery = () => {
         </div>
         
         <div className="flex gap-2 self-end">
+          <Button
+            variant="outline" 
+            size="sm"
+            onClick={handleRefresh}
+            className="mr-2"
+          >
+            <RefreshCw className="h-4 w-4 mr-1" />
+            Refresh
+          </Button>
+          
           <Button
             variant={!productView ? "default" : "outline"}
             size="sm"
@@ -180,7 +191,27 @@ const ImageGallery = () => {
         </div>
       </div>
       
-      {filteredImages.length === 0 ? (
+      {images.length === 0 ? (
+        <Alert className="bg-blue-50 border-blue-200 text-blue-800">
+          <Info className="h-4 w-4 text-blue-600" />
+          <AlertDescription className="text-blue-700">
+            <p className="font-medium">No Cloudinary images found</p>
+            <p className="text-sm mt-1">
+              Upload some images using the upload tab to see them here.
+              Make sure your images include "cloudinary.com" in their URLs.
+            </p>
+            <Button
+              variant="outline" 
+              size="sm"
+              onClick={handleRefresh}
+              className="mt-3 text-blue-700 border-blue-300 hover:bg-blue-100"
+            >
+              <RefreshCw className="h-4 w-4 mr-1" />
+              Refresh Gallery
+            </Button>
+          </AlertDescription>
+        </Alert>
+      ) : filteredImages.length === 0 ? (
         <Alert className="bg-amber-50 border-amber-200 text-amber-800">
           <AlertCircle className="h-4 w-4 text-amber-600" />
           <AlertDescription className="text-amber-700">

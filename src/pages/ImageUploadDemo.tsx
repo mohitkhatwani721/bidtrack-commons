@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
@@ -22,6 +21,7 @@ const ImageUploadDemo = () => {
   const [selectedProductId, setSelectedProductId] = useState<string>("");
   const [configStatus, setConfigStatus] = useState<"valid" | "invalid" | "incomplete" | "checking">("checking");
   const [activeTab, setActiveTab] = useState("upload");
+  const [galleryRefreshTrigger, setGalleryRefreshTrigger] = useState(0);
   
   useEffect(() => {
     console.log("ImageUploadDemo mounted");
@@ -78,7 +78,7 @@ const ImageUploadDemo = () => {
       </div>
     );
     
-    // Switch to gallery tab after successful upload
+    setGalleryRefreshTrigger(prev => prev + 1);
     setActiveTab("gallery");
   };
 
@@ -314,7 +314,7 @@ const ImageUploadDemo = () => {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <ImageGallery />
+                  <ImageGallery key={`gallery-${galleryRefreshTrigger}`} />
                 </CardContent>
               </Card>
             </TabsContent>

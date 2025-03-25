@@ -214,7 +214,21 @@ export const fetchViaCloudinary = (
  * Checks if a URL is a Cloudinary URL
  */
 export const isCloudinaryUrl = (url: string): boolean => {
-  return url && url.includes('cloudinary.com');
+  if (!url) return false;
+  
+  try {
+    // Check if the URL contains cloudinary.com
+    const isCloudinary = url.includes('cloudinary.com');
+    
+    if (isCloudinary) {
+      console.log(`Detected Cloudinary URL: ${url.substring(0, 50)}...`);
+    }
+    
+    return isCloudinary;
+  } catch (error) {
+    console.error('Error checking if URL is Cloudinary:', error);
+    return false;
+  }
 };
 
 /**
