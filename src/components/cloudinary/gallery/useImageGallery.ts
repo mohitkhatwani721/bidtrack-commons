@@ -1,25 +1,16 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabase/client";
-import { CLOUDINARY_CLOUD_NAME } from "@/lib/cloudinary/client";
 import { toast } from "sonner";
+import { getProductById } from "@/lib/supabase/products";
+import { isCloudinaryUrl } from "@/utils/imageUtils";
 
-interface CloudinaryImage {
-  id: string;
+export interface CloudinaryImage {
   publicId: string;
   url: string;
-  createdAt: string;
+  uploadedAt: string;
   productId?: string;
-  product?: {
-    name: string;
-    id: string;
-  };
-}
-
-interface ProductViewModel {
-  productId: string;
-  productName: string;
-  images: CloudinaryImage[];
+  productName?: string;
 }
 
 export const useImageGallery = () => {
@@ -27,161 +18,144 @@ export const useImageGallery = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [productView, setProductView] = useState(false);
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [cloudinaryImagesCount, setCloudinaryImagesCount] = useState(0);
 
-  useEffect(() => {
-    const fetchImages = async () => {
-      try {
-        setLoading(true);
+  const fetchImagesFromCloudinary = useCallback(async () => {
+    try {
+      setLoading(true);
+      
+      // Fetch products that have Cloudinary image URLs
+      const { data: products, error } = await supabase
+        .from('products')
+        .select('id, name, image_url');
+      
+      if (error) {
+        throw new Error(`Error fetching products: ${error.message}`);
+      }
+      
+      // Filter products with Cloudinary URLs
+      const productsWithCloudinaryImages = products.filter(p => 
+        p.image_url && isCloudinaryUrl(p.image_url)
+      );
+      
+      setCloudinaryImagesCount(productsWithCloudinaryImages.length);
+      
+      // Convert to the required format with publicId extracted from the URL
+      const cloudinaryImages: CloudinaryImage[] = productsWithCloudinaryImages.map(product => {
+        // Extract the public ID from the Cloudinary URL
+        let publicId = "";
         
-        // Improved query to fetch all products including those with Cloudinary images
-        const { data: products, error } = await supabase
-          .from('products')
-          .select('id, name, image_url, created_at')
-          .not('image_url', 'is', null)
-          .order('created_at', { ascending: false });
-        
-        if (error) {
-          console.error("Error fetching products with images:", error);
-          toast.error("Failed to load images");
-          setLoading(false);
-          return;
-        }
-
-        console.log("Fetched products with images:", products?.length || 0);
-        
-        if (products && products.length > 0) {
-          console.log("Sample image URLs:", products.slice(0, 3).map(p => p.image_url));
-        }
-        
-        // Process the results with more robust detection
-        const cloudinaryImages: CloudinaryImage[] = [];
-        
-        for (const product of (products || [])) {
-          if (product.image_url) {
-            // More inclusive check for Cloudinary URLs (fixed)
-            const isCloudinaryImage = product.image_url.includes('cloudinary.com') || 
-                                     product.image_url.includes('res.cloudinary.com');
-            
-            if (isCloudinaryImage) {
-              console.log("Found Cloudinary image:", product.image_url);
+        try {
+          // Handle URLs with different formats
+          if (product.image_url.includes('/upload/')) {
+            const parts = product.image_url.split('/upload/');
+            if (parts.length > 1) {
+              // Get everything after /upload/ and remove any transformation params
+              const afterUpload = parts[1];
               
-              // Extract public ID from Cloudinary URL with improved parsing
-              let publicId = '';
-              
-              // Try to extract public ID with different patterns
-              if (product.image_url.includes('/upload/')) {
-                const uploadIndex = product.image_url.indexOf('/upload/');
-                if (uploadIndex !== -1) {
-                  // Get everything after /upload/ and possibly after transformations
-                  const afterUpload = product.image_url.substring(uploadIndex + 8);
-                  
-                  // Handle v1/ pattern
-                  if (afterUpload.includes('/v1/')) {
-                    publicId = afterUpload.substring(afterUpload.indexOf('/v1/') + 4);
-                  } else if (afterUpload.startsWith('v1/')) {
-                    publicId = afterUpload.substring(3);
-                  } else if (afterUpload.includes('asset/bid/')) {
-                    // Handle the pattern we're seeing in your uploaded images
-                    const assetIndex = afterUpload.indexOf('asset/bid/');
-                    if (assetIndex !== -1) {
-                      publicId = 'asset/bid/' + afterUpload.substring(assetIndex + 10);
-                    } else {
-                      publicId = afterUpload;
-                    }
-                  } else {
-                    // For URLs without version identifier
-                    publicId = afterUpload;
-                  }
-                  
-                  // Remove any query parameters
-                  if (publicId.includes('?')) {
-                    publicId = publicId.substring(0, publicId.indexOf('?'));
-                  }
-                  
-                  // Generate a direct URL without transformations for display
-                  const directUrl = `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/v1/${publicId}`;
-                  
-                  cloudinaryImages.push({
-                    id: `img_${product.id}`,
-                    publicId,
-                    url: directUrl,
-                    createdAt: product.created_at || new Date().toISOString(),
-                    productId: product.id,
-                    product: {
-                      name: product.name,
-                      id: product.id
-                    }
-                  });
-                  
-                  console.log("Extracted public ID:", publicId);
-                  console.log("Created direct URL:", directUrl);
-                }
+              // Check if there's a version (v1) in the URL
+              if (afterUpload.includes('/v1/')) {
+                publicId = afterUpload.split('/v1/')[1];
+              } else {
+                // If no version, just take everything after the transformations
+                const transformSplit = afterUpload.split('/');
+                publicId = transformSplit[transformSplit.length - 1];
               }
-            } else {
-              console.log("Non-Cloudinary image URL:", product.image_url);
+              
+              // Clean up any query parameters
+              if (publicId.includes('?')) {
+                publicId = publicId.split('?')[0];
+              }
             }
           }
+        } catch (err) {
+          console.error("Error extracting publicId from URL:", err);
+          publicId = "unknown";
         }
         
-        console.log("Total Cloudinary images found:", cloudinaryImages.length);
-        setImages(cloudinaryImages);
-      } catch (error) {
-        console.error("Error processing images:", error);
-        toast.error("Failed to process images");
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    fetchImages();
-  }, [refreshTrigger]);
-
-  // Handle refresh button click
+        return {
+          publicId,
+          url: product.image_url,
+          uploadedAt: new Date().toISOString(), // We don't have the actual date, so using current time
+          productId: product.id,
+          productName: product.name
+        };
+      });
+      
+      // Sort by uploadedAt (newest first) - in a real app this would use the actual upload date
+      cloudinaryImages.sort((a, b) => 
+        new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime()
+      );
+      
+      setImages(cloudinaryImages);
+    } catch (error) {
+      console.error("Error in fetchImagesFromCloudinary:", error);
+      toast.error("Failed to load images from products");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+  
+  // Fetch images when component mounts
+  useEffect(() => {
+    fetchImagesFromCloudinary();
+  }, [fetchImagesFromCloudinary]);
+  
+  // Handle refresh
   const handleRefresh = () => {
-    setRefreshTrigger(prev => prev + 1);
     toast.info("Refreshing image gallery...");
+    fetchImagesFromCloudinary();
   };
   
   // Filter images based on search term
   const filteredImages = images.filter(image => {
-    if (!searchTerm) return true;
-    
     const searchLower = searchTerm.toLowerCase();
     return (
       image.publicId.toLowerCase().includes(searchLower) ||
-      (image.product?.name.toLowerCase().includes(searchLower) || false) ||
-      (image.productId?.toLowerCase().includes(searchLower) || false)
+      (image.productName && image.productName.toLowerCase().includes(searchLower))
     );
   });
   
-  // Group images by product for product view
-  const imagesByProduct = filteredImages.reduce((acc, image) => {
-    const productId = image.productId || 'unassociated';
-    if (!acc[productId]) {
-      acc[productId] = {
+  // Group images by product for the product view
+  const imagesByProduct = filteredImages.reduce((groups, image) => {
+    const productId = image.productId || 'unknown';
+    const productName = image.productName || 'Unknown Product';
+    
+    if (!groups[productId]) {
+      groups[productId] = {
         productId,
-        productName: image.product?.name || 'Unassociated Images',
+        productName,
         images: []
       };
     }
-    acc[productId].images.push(image);
-    return acc;
-  }, {} as Record<string, ProductViewModel>);
+    
+    groups[productId].images.push(image);
+    return groups;
+  }, {} as Record<string, { productId: string; productName: string; images: CloudinaryImage[] }>);
   
   // Handle opening image in new tab
   const openImageInNewTab = (url: string) => {
     window.open(url, '_blank');
   };
   
-  // Handle navigating to product detail
-  const navigateToProduct = (productId: string) => {
-    window.open(`/products/${productId}`, '_blank');
+  // Navigate to product detail
+  const navigateToProduct = async (productId: string) => {
+    try {
+      const product = await getProductById(productId);
+      if (product) {
+        window.open(`/products/${productId}`, '_blank');
+      } else {
+        toast.error("Product not found");
+      }
+    } catch (error) {
+      console.error("Error navigating to product:", error);
+      toast.error("Could not open product page");
+    }
   };
-
+  
   return {
-    images,
     loading,
+    images,
     searchTerm,
     setSearchTerm,
     productView,
@@ -190,6 +164,7 @@ export const useImageGallery = () => {
     filteredImages,
     imagesByProduct,
     openImageInNewTab,
-    navigateToProduct
+    navigateToProduct,
+    cloudinaryImagesCount
   };
 };
