@@ -13,6 +13,7 @@ export {
 
 // URL Building
 export {
+  buildCloudinaryUrl as getCloudinaryUrl, // Export buildCloudinaryUrl as getCloudinaryUrl for backward compatibility
   buildCloudinaryUrl,
   isCloudinaryUrl,
   fetchViaCloudinary
