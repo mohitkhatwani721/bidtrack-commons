@@ -1,5 +1,6 @@
 
 import { useEffect } from "react";
+import { toast } from "sonner";
 
 interface ImageUrlDisplayProps {
   imageUrl: string | undefined;
@@ -7,15 +8,21 @@ interface ImageUrlDisplayProps {
 
 const ImageUrlDisplay = ({ imageUrl }: ImageUrlDisplayProps) => {
   useEffect(() => {
-    console.log("Current image URL in display component:", imageUrl);
+    console.log("🔍 ImageUrlDisplay - Current URL:", imageUrl);
+    
+    // Extra validation for Cloudinary URLs
+    if (imageUrl?.includes('cloudinary.com')) {
+      const urlParts = imageUrl.split('/upload/');
+      if (urlParts.length === 2) {
+        console.log("🔍 Cloudinary URL Parts:", {
+          base: urlParts[0],
+          publicId: urlParts[1]
+        });
+      }
+    }
   }, [imageUrl]);
 
   if (!imageUrl) return null;
-  
-  // Format URL for display: ensure it's not too long and doesn't break layout
-  const displayUrl = imageUrl.length > 100 
-    ? `${imageUrl.substring(0, 50)}...${imageUrl.substring(imageUrl.length - 50)}`
-    : imageUrl;
   
   return (
     <div className="mt-4 p-3 bg-slate-50 border border-slate-200 rounded text-xs font-mono overflow-hidden">
@@ -24,40 +31,36 @@ const ImageUrlDisplay = ({ imageUrl }: ImageUrlDisplayProps) => {
         <p className="whitespace-nowrap hover:text-blue-600 cursor-pointer" 
            onClick={() => {
              navigator.clipboard.writeText(imageUrl);
-             // Create a flash effect to indicate copy
-             const el = document.activeElement as HTMLElement;
-             if (el) el.blur();
+             toast.success("URL copied to clipboard");
            }}
            title="Click to copy URL">
           {imageUrl}
         </p>
       </div>
       
-      {/* Add a preview element */}
       <div className="mt-2 p-2 border border-slate-200 rounded bg-white">
         <p className="text-slate-500 mb-1 text-xs">Image preview:</p>
         <img 
           src={imageUrl} 
           alt="URL preview" 
           className="h-20 object-contain mx-auto" 
+          onLoad={() => console.log("🟢 Image preview loaded successfully")}
           onError={(e) => {
-            console.error("Error loading image preview:", imageUrl);
-            const img = e.target as HTMLImageElement;
-            img.style.display = 'none';
+            console.error("🔴 Image preview failed to load:", {
+              src: imageUrl,
+              error: e
+            });
             
-            // Try adding v1 for direct Cloudinary uploads
-            if (imageUrl.includes('cloudinary.com') && imageUrl.includes('/upload/')) {
-              try {
-                const parts = imageUrl.split('/upload/');
-                if (parts.length === 2 && !parts[1].startsWith('v1/')) {
-                  const fixedUrl = `${parts[0]}/upload/v1/${parts[1]}`;
-                  console.log("Trying fixed Cloudinary URL in preview:", fixedUrl);
-                  img.src = fixedUrl;
-                  img.style.display = 'block';
-                }
-              } catch (err) {
-                console.error("Error fixing preview URL:", err);
-              }
+            // Optional: Attempt to reconstruct URL
+            const img = e.target as HTMLImageElement;
+            const cloudName = 'di8rdvt2y';  // Your Cloudinary cloud name
+            
+            try {
+              const simplifiedUrl = `https://res.cloudinary.com/${cloudName}/image/upload/v1/asset/bid/product_d6f24efa-e090-41f5-b4bb-6d5bd54f4955_1742872260379.png`;
+              console.log("🔍 Attempting simplified URL:", simplifiedUrl);
+              img.src = simplifiedUrl;
+            } catch (err) {
+              console.error("Failed to fix image URL", err);
             }
           }}
         />
