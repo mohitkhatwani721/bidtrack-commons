@@ -1,6 +1,5 @@
-
 import { useState, useEffect, useRef } from "react";
-import { generateLowQualityImagePlaceholder, isCloudinaryUrl } from "@/utils/imageUtils";
+import { generateLowQualityImagePlaceholder, isCloudinaryUrl } from "@/utils/images";
 
 export const usePlaceholders = (productImages: string[]) => {
   const [placeholders, setPlaceholders] = useState<Record<string, string>>({});

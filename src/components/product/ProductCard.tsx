@@ -13,7 +13,7 @@ import {
   isCloudinaryUrl, 
   convertToCloudinary,
   getCloudinaryUrl 
-} from "@/utils/imageUtils";
+} from "@/utils/images";
 import { getHighestBidForProduct } from "@/lib/supabase";
 
 interface ProductCardProps {

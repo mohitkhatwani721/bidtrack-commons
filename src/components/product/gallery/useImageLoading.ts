@@ -1,6 +1,7 @@
 
 import { useState, useEffect, useRef } from "react";
-import { preloadImages, sanitizeSamsungUrl } from "@/utils/imageUtils";
+import { preloadImages } from "@/utils/images/imagePreloader";
+import { sanitizeSamsungUrl } from "@/utils/images/samsungUrlFix";
 import { toast } from "sonner";
 
 export const useImageLoading = (

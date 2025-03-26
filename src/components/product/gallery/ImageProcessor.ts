@@ -1,5 +1,5 @@
 
-import { sanitizeSamsungUrl } from "@/utils/imageUtils";
+import { sanitizeSamsungUrl } from "@/utils/images/samsungUrlFix";
 import { buildCloudinaryUrl, isCloudinaryUrl } from "@/lib/cloudinary";
 
 /**

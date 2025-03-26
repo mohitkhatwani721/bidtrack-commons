@@ -3,7 +3,7 @@ import { useEffect, useRef } from "react";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import ProductDetailComponent from "@/components/product/ProductDetail";
-import { sanitizeSamsungUrl } from "@/utils/imageUtils";
+import { sanitizeSamsungUrl } from "@/utils/images/samsungUrlFix";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { RefreshCcw } from "lucide-react";
