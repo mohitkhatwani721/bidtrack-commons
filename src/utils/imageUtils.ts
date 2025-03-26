@@ -1,8 +1,9 @@
+
 import randomWords from 'random-words';
 import { 
   CLOUDINARY_CLOUD_NAME, 
   CLOUDINARY_BASE_URL, 
-  getCloudinaryUrl, 
+  buildCloudinaryUrl, 
   isCloudinaryUrl as isCloudinaryUrlCheck,
   fetchViaCloudinary,
   uploadToCloudinary as uploadToCloudinaryClient,
@@ -11,7 +12,7 @@ import {
 
 // Re-export Cloudinary utility functions
 export const isCloudinaryUrl = isCloudinaryUrlCheck;
-export const getCloudinaryUrl = getCloudinaryUrl;
+export const getCloudinaryUrl = buildCloudinaryUrl;
 
 // Image optimization cache to prevent duplicate processing
 const optimizationCache: Record<string, string> = {};

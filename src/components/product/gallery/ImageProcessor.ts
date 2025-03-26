@@ -1,6 +1,6 @@
 
 import { sanitizeSamsungUrl } from "@/utils/imageUtils";
-import { getCloudinaryUrl, isCloudinaryUrl } from "@/lib/cloudinary";
+import { buildCloudinaryUrl, isCloudinaryUrl } from "@/lib/cloudinary";
 
 /**
  * Processes a product image URL and returns optimized versions
@@ -16,7 +16,7 @@ export const processProductImage = (product: any) => {
   const productImages = [cloudinaryMainImage];
   
   // Use a different fallback image for products without images
-  const fallbackImage = getCloudinaryUrl('sample', { width: 800, height: 600, quality: 90 });
+  const fallbackImage = buildCloudinaryUrl('sample', { width: 800, height: 600, quality: 90 });
   
   return {
     cloudinaryMainImage,
