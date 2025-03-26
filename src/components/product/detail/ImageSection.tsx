@@ -4,6 +4,7 @@ import ProductImageGallery from "../ProductImageGallery";
 import ImageActions from "./ImageActions";
 import ImageUrlDisplay from "./ImageUrlDisplay";
 import { toast } from "sonner";
+import { useEffect } from "react";
 
 interface ImageSectionProps {
   product: Product;
@@ -12,7 +13,14 @@ interface ImageSectionProps {
 }
 
 const ImageSection = ({ product, onRefresh, setProduct }: ImageSectionProps) => {
+  // Add effect to log image URL for debugging
+  useEffect(() => {
+    console.log("Product image URL in ImageSection:", product.imageUrl);
+  }, [product.imageUrl]);
+
   const handleImageUploaded = (publicId: string, url: string) => {
+    console.log("Image uploaded callback triggered with URL:", url);
+    
     // Update the product in local state to show the new image immediately
     setProduct({
       ...product,
@@ -21,6 +29,11 @@ const ImageSection = ({ product, onRefresh, setProduct }: ImageSectionProps) => 
     
     // Notify the user
     toast.success("Product image updated successfully");
+    
+    // Force a refresh after a small delay to ensure everything is updated
+    setTimeout(() => {
+      onRefresh();
+    }, 500);
   };
 
   return (

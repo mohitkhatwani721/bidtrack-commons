@@ -29,10 +29,16 @@ const ProductImageDisplay = ({
   // Reset load attempt when active image changes
   useEffect(() => {
     setLoadAttempt(0);
+    console.log("Active image in ProductImageDisplay:", activeImage);
   }, [activeImage]);
   
   // Get appropriate image source with fallbacks
   const getImageSource = (url: string) => {
+    if (!url) {
+      console.log("No URL provided to getImageSource, using fallback");
+      return fallbackImage;
+    }
+    
     // Always check if there's an error with this URL first
     if (imageErrors[url]) {
       console.log(`Using fallback for image with error: ${url} -> ${fallbackImage}`);
@@ -41,7 +47,13 @@ const ProductImageDisplay = ({
     
     // If this is a retry attempt, add a cache-busting parameter
     if (loadAttempt > 0) {
+      console.log(`Adding cache buster to URL: ${url}, attempt: ${loadAttempt}`);
       return `${url}${url.includes('?') ? '&' : '?'}_attempt=${loadAttempt}`;
+    }
+    
+    // For Cloudinary URLs, ensure we're using the proper URL format
+    if (url.includes('cloudinary.com')) {
+      console.log("Using Cloudinary URL:", url);
     }
     
     return url;
@@ -97,15 +109,54 @@ const ProductImageDisplay = ({
           opacity: imagesLoaded[activeImage] && !imageErrors[activeImage] ? 1 : 0 
         }}
         loading="eager" // Load main product image immediately
-        onError={() => {
-          console.log(`Main image error (attempt ${loadAttempt}), falling back to sample image: ${activeImage}`);
+        onLoad={() => {
+          console.log(`Image loaded successfully: ${imageSource}`);
+          // Update the imagesLoaded status
+          imagesLoaded[activeImage] = true;
+        }}
+        onError={(e) => {
+          console.log(`Main image error (attempt ${loadAttempt}), URL: ${imageSource}`);
           handleImageError(activeImage);
+          
+          // Try a direct approach if it's a Cloudinary URL
+          if (activeImage.includes('cloudinary.com') && !activeImage.includes('_attempt=')) {
+            console.log("Attempting direct Cloudinary URL fix for:", activeImage);
+            
+            // Get the image element and try to fix the URL
+            const imgElement = e.target as HTMLImageElement;
+            if (activeImage.includes('/upload/')) {
+              try {
+                // For direct Cloudinary URLs, ensure we're using v1
+                const parts = activeImage.split('/upload/');
+                if (parts.length === 2) {
+                  const fixedUrl = `${parts[0]}/upload/v1/${parts[1]}`;
+                  console.log("Fixed Cloudinary URL:", fixedUrl);
+                  imgElement.src = fixedUrl;
+                  return; // Early return to give this a chance to load
+                }
+              } catch (err) {
+                console.error("Error fixing Cloudinary URL:", err);
+              }
+            }
+          }
         }}
       />
       
       <div className="absolute top-4 left-4">
         <Badge className="glass">{product.zone}</Badge>
       </div>
+      
+      {/* Add manual retry button for problematic images */}
+      {imageErrors[activeImage] && (
+        <div className="absolute bottom-4 right-4">
+          <button 
+            onClick={handleManualRetry}
+            className="bg-blue-600 text-white px-2 py-1 rounded text-xs"
+          >
+            Retry Image
+          </button>
+        </div>
+      )}
     </motion.div>
   );
 };
