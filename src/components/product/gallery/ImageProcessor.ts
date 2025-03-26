@@ -1,5 +1,4 @@
 
-import { sanitizeSamsungUrl } from "@/utils/images/samsungUrlFix";
 import { buildCloudinaryUrl, isCloudinaryUrl } from "@/lib/cloudinary";
 
 /**
@@ -10,24 +9,20 @@ export const processProductImage = (product: any) => {
   const mainImage = product.imageUrl || '';
   console.log("Processing product image:", mainImage);
   
-  // Use Cloudinary URL if available
-  const cloudinaryMainImage = mainImage;
-  
   // Create multiple views of the image for the gallery
-  const productImages = [cloudinaryMainImage];
+  const productImages = [mainImage];
   
-  // Use a different fallback image for products without images
+  // Use a default Cloudinary image as fallback
   const fallbackImage = buildCloudinaryUrl('sample', { width: 800, height: 600, quality: 90 });
   
   console.log("Processed image:", {
     original: mainImage,
-    cloudinaryMainImage,
     isCloudinaryUrl: isCloudinaryUrl(mainImage),
     fallbackImage
   });
   
   return {
-    cloudinaryMainImage,
+    cloudinaryMainImage: mainImage,
     productImages,
     fallbackImage
   };
@@ -48,40 +43,25 @@ export const getImageSource = (url: string, imageErrors: Record<string, boolean>
   // Special handling for direct Cloudinary uploads
   if (url.includes('cloudinary.com')) {
     // Ensure v1 is in the URL for direct uploads
-    if (url.includes('/upload/') && !url.includes('/upload/v1/')) {
+    if (url.includes('/upload/')) {
       try {
         const parts = url.split('/upload/');
-        if (parts.length === 2 && !parts[1].startsWith('v1/')) {
+        if (parts.length === 2 && !parts[1].startsWith('v1/') && !parts[1].match(/^v\d+\//)) {
           const fixedUrl = `${parts[0]}/upload/v1/${parts[1]}`;
           console.log("Fixed direct Cloudinary URL format:", fixedUrl);
           return fixedUrl;
         }
       } catch (error) {
         console.error("Error fixing Cloudinary URL format:", error);
+        return fallbackImage;
       }
     }
   }
   
-  // For Samsung URLs, try to sanitize them automatically
-  if (url.includes('samsung.com')) {
-    try {
-      const sanitizedUrl = sanitizeSamsungUrl(url);
-      console.log(`Sanitized Samsung URL for display: ${sanitizedUrl}`);
-      return sanitizedUrl;
-    } catch (error) {
-      console.error("Error sanitizing Samsung URL:", error);
-    }
-  }
-  
-  // For Cloudinary fetch URLs that contain Samsung URLs
-  if (isCloudinaryUrl(url) && url.includes('/fetch/') && url.includes('samsung.com')) {
-    try {
-      const sanitizedUrl = sanitizeSamsungUrl(url);
-      console.log(`Sanitized Cloudinary+Samsung URL: ${sanitizedUrl}`);
-      return sanitizedUrl;
-    } catch (error) {
-      console.error("Error sanitizing Cloudinary+Samsung URL:", error);
-    }
+  // If not a Cloudinary URL, use the fallback
+  if (!isCloudinaryUrl(url)) {
+    console.log("Non-Cloudinary URL, using fallback:", url);
+    return fallbackImage;
   }
   
   return url;

@@ -51,12 +51,29 @@ const ProductImageDisplay = ({
       return `${url}${url.includes('?') ? '&' : '?'}_attempt=${loadAttempt}`;
     }
     
-    // For Cloudinary URLs, ensure we're using the proper URL format
+    // For Cloudinary URLs, ensure proper URL format
     if (url.includes('cloudinary.com')) {
+      if (url.includes('/upload/')) {
+        try {
+          const parts = url.split('/upload/');
+          if (parts.length === 2 && !parts[1].startsWith('v1/') && !parts[1].match(/^v\d+\//)) {
+            const fixedUrl = `${parts[0]}/upload/v1/${parts[1]}`;
+            console.log("Fixed Cloudinary URL format:", fixedUrl);
+            return fixedUrl;
+          }
+        } catch (error) {
+          console.error("Error fixing Cloudinary URL:", error);
+        }
+      }
+      
+      // No fixes needed, use the original URL
       console.log("Using Cloudinary URL:", url);
+      return url;
     }
     
-    return url;
+    // If not a Cloudinary URL, use the fallback
+    console.log("Non-Cloudinary URL, using fallback instead of:", url);
+    return fallbackImage;
   };
 
   const handleManualRetry = () => {
