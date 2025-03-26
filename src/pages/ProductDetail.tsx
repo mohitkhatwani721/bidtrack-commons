@@ -32,25 +32,55 @@ const ProductDetail = () => {
           
           console.log(`Global image error handler triggered for: ${originalSrc}`);
           
-          // Check if it's a Samsung URL
-          if (originalSrc.includes('samsung.com')) {
+          // Special handling for Cloudinary+Samsung URLs
+          if (originalSrc.includes('cloudinary.com') && originalSrc.includes('samsung.com')) {
             event.preventDefault(); // Prevent default error handling
             
-            // Try to fix the Samsung URL by removing query parameters
-            const sanitizedUrl = sanitizeSamsungUrl(originalSrc);
-            console.log(`Sanitizing Samsung URL globally: ${originalSrc} -> ${sanitizedUrl}`);
-            
-            // Only retry if the URL actually changed
-            if (sanitizedUrl !== originalSrc) {
-              processedUrls.add(originalSrc); // Mark as processed
-              img.src = sanitizedUrl; // Set the sanitized URL
-              
-              toast.info("Fixing Samsung image URL", {
-                id: "samsung-image-fix",
-                duration: 2000
-              });
-              
-              console.log("Applied Samsung URL fix");
+            // Try to fix the Samsung URL
+            try {
+              // If it's a cloudinary fetch URL with Samsung content
+              if (originalSrc.includes('/fetch/')) {
+                const parts = originalSrc.split('/fetch/');
+                if (parts.length === 2) {
+                  // Get the transformations part
+                  const transformations = parts[0];
+                  
+                  // Get and decode the fetched URL
+                  const fetchedUrl = decodeURIComponent(parts[1]);
+                  
+                  // Sanitize the Samsung URL directly
+                  if (fetchedUrl.includes('samsung.com')) {
+                    const parsedUrl = new URL(fetchedUrl);
+                    const sanitizedSamsungUrl = `${parsedUrl.origin}${parsedUrl.pathname}`;
+                    
+                    // Reconstruct the Cloudinary URL with sanitized Samsung URL
+                    const newSrc = `${transformations}/fetch/${encodeURIComponent(sanitizedSamsungUrl)}`;
+                    
+                    console.log(`Fixed Cloudinary+Samsung URL: ${newSrc}`);
+                    processedUrls.add(originalSrc);
+                    img.src = newSrc;
+                    
+                    toast.info("Fixing Samsung image", {
+                      id: "samsung-image-fix",
+                      duration: 2000
+                    });
+                  }
+                }
+              } else {
+                // For directly embedded Samsung URLs
+                const sanitizedUrl = sanitizeSamsungUrl(originalSrc);
+                if (sanitizedUrl !== originalSrc) {
+                  processedUrls.add(originalSrc);
+                  img.src = sanitizedUrl;
+                  
+                  toast.info("Fixing Samsung image URL", {
+                    id: "samsung-image-fix",
+                    duration: 2000
+                  });
+                }
+              }
+            } catch (error) {
+              console.error("Error sanitizing Samsung URL:", error);
             }
           }
         }
@@ -80,11 +110,25 @@ const ProductDetail = () => {
       if (currentSrc) {
         // For Cloudinary URLs, we can force a reload by adding a cachebuster
         if (currentSrc.includes('cloudinary.com')) {
-          const newSrc = currentSrc.includes('?') 
-            ? `${currentSrc}&_retry=${retryCount.current}` 
-            : `${currentSrc}?_retry=${retryCount.current}`;
-            
-          img.src = newSrc;
+          // Special handling for Samsung images
+          if (currentSrc.includes('samsung.com')) {
+            try {
+              const sanitized = sanitizeSamsungUrl(currentSrc);
+              img.src = `${sanitized}${sanitized.includes('?') ? '&' : '?'}_retry=${retryCount.current}`;
+            } catch (e) {
+              // If that fails, just add cachebuster to original
+              const newSrc = currentSrc.includes('?') 
+                ? `${currentSrc}&_retry=${retryCount.current}` 
+                : `${currentSrc}?_retry=${retryCount.current}`;
+              img.src = newSrc;
+            }
+          } else {
+            // Regular Cloudinary images
+            const newSrc = currentSrc.includes('?') 
+              ? `${currentSrc}&_retry=${retryCount.current}` 
+              : `${currentSrc}?_retry=${retryCount.current}`;
+            img.src = newSrc;
+          }
         }
       }
     });

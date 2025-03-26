@@ -82,6 +82,25 @@ export const isCloudinaryUrl = (url: string): boolean => {
 };
 
 /**
+ * Sanitizes URL for fetch - especially important for Samsung URLs
+ */
+const sanitizeFetchUrl = (url: string): string => {
+  if (!url) return '';
+  
+  try {
+    // Special handling for Samsung URLs
+    if (url.includes('samsung.com')) {
+      const parsedUrl = new URL(url);
+      return `${parsedUrl.origin}${parsedUrl.pathname}`;
+    }
+  } catch (error) {
+    console.error('Error sanitizing fetch URL:', error);
+  }
+  
+  return url;
+};
+
+/**
  * Fetches external images through Cloudinary for optimization
  */
 export const fetchViaCloudinary = (
@@ -96,15 +115,18 @@ export const fetchViaCloudinary = (
   if (!externalUrl) return '';
 
   try {
+    // Sanitize the URL before encoding it (especially for Samsung URLs)
+    const sanitizedUrl = sanitizeFetchUrl(externalUrl);
+    
     // For external images, we can use Cloudinary's fetch capability
-    const fetchUrl = encodeURIComponent(externalUrl);
+    const fetchUrl = encodeURIComponent(sanitizedUrl);
     
     const { width = 600, height = 400, quality = 80 } = options;
     
     // Enhanced transformations for better performance
     const transformations = `w_${width},h_${height},q_${quality},c_fill,f_auto,fl_progressive`;
     
-    // FIX: Use the correct fetch URL format
+    // Use the correct fetch URL format
     return `${CLOUDINARY_BASE_URL}/${transformations}/fetch/${fetchUrl}`;
   } catch (error) {
     console.error("Error creating fetch URL:", error);

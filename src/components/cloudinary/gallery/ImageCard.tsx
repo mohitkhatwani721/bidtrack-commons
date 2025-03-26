@@ -20,17 +20,59 @@ const ImageCard = ({
   onImageClick,
   onProductClick
 }: ImageCardProps) => {
+  // Fix Samsung URLs directly in the component
+  const fixSamsungUrls = (originalUrl: string) => {
+    if (originalUrl.includes('samsung.com') && originalUrl.includes('?')) {
+      try {
+        // For Cloudinary fetch URLs containing Samsung URLs
+        if (originalUrl.includes('/fetch/')) {
+          const [baseUrl, fetchPart] = originalUrl.split('/fetch/');
+          if (fetchPart) {
+            const decodedUrl = decodeURIComponent(fetchPart);
+            const parsedUrl = new URL(decodedUrl);
+            const sanitizedPath = `${parsedUrl.origin}${parsedUrl.pathname}`;
+            return `${baseUrl}/fetch/${encodeURIComponent(sanitizedPath)}`;
+          }
+        } else if (originalUrl.includes('samsung.com')) {
+          // Direct Samsung URL
+          const parsedUrl = new URL(originalUrl);
+          return `${parsedUrl.origin}${parsedUrl.pathname}`;
+        }
+      } catch (e) {
+        console.error("Error fixing Samsung URL in ImageCard:", e);
+      }
+    }
+    return originalUrl;
+  };
+
+  // Process URL to fix any Samsung issues
+  const processedUrl = fixSamsungUrls(url);
+
   return (
     <Card className="overflow-hidden hover:shadow-md transition-shadow">
       <div 
         className="aspect-square relative cursor-pointer"
-        onClick={() => onImageClick(url)}
+        onClick={() => onImageClick(processedUrl)}
       >
         <img 
-          src={url} 
+          src={processedUrl} 
           alt={`Cloudinary image ${publicId}`}
           className="object-cover w-full h-full hover:scale-105 transition-transform"
           onError={(e) => {
+            // Add direct Samsung URL fixing on error
+            if (url.includes('samsung.com')) {
+              try {
+                const imgElement = e.target as HTMLImageElement;
+                const currentSrc = imgElement.src;
+                if (currentSrc.includes('?')) {
+                  const newSrc = currentSrc.split('?')[0];
+                  imgElement.src = newSrc;
+                  return;
+                }
+              } catch (err) {
+                console.error("Error fixing Samsung URL on error:", err);
+              }
+            }
             (e.target as HTMLImageElement).src = '/placeholder.svg';
           }}
         />
