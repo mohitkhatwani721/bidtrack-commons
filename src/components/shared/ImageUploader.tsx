@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { 
   uploadToCloudinary, 
@@ -38,9 +37,7 @@ const ImageUploader = ({
   const [rawPublicId, setRawPublicId] = useState<string | null>(null);
   const [directCloudinaryUrl, setDirectCloudinaryUrl] = useState<string | null>(null);
   
-  // Check configuration on mount
   useEffect(() => {
-    // Check if Cloudinary is configured properly
     const checkConfig = () => {
       try {
         const isValid = isCloudinaryConfigured();
@@ -62,48 +59,42 @@ const ImageUploader = ({
     const file = e.target.files?.[0];
     if (!file) return;
     
-    // Clear previous errors and states
     setUploadError(null);
     setIsPresetError(false);
     setRawPublicId(null);
     setDirectCloudinaryUrl(null);
     
-    // Check if configuration is valid
     if (isConfigValid === false) {
       toast.error("Cloudinary is not configured correctly");
       setUploadError('Cloudinary configuration is invalid. Cannot upload images.');
       return;
     }
     
-    // Check file type
     if (!file.type.startsWith('image/')) {
       toast.error("Please select an image file");
       return;
     }
     
-    // Check file size (limit to 5MB)
-    const MAX_SIZE = 5 * 1024 * 1024; // 5MB
+    const MAX_SIZE = 5 * 1024 * 1024;
     if (file.size > MAX_SIZE) {
       toast.error("Image must be less than 5MB");
       return;
     }
     
     setIsUploading(true);
-    setUploadProgress(10); // Start progress
+    setUploadProgress(10);
     
     try {
-      // Simulate progress (since we can't get real progress from the fetch API easily)
       const progressInterval = setInterval(() => {
         setUploadProgress(prev => {
           const newProgress = prev + Math.random() * 15;
-          return newProgress < 90 ? newProgress : 90; // Don't reach 100 until complete
+          return newProgress < 90 ? newProgress : 90;
         });
       }, 500);
       
       console.log("Starting upload with preset:", CLOUDINARY_UPLOAD_PRESET);
       console.log("Product ID for upload:", productId || "none");
       
-      // Pass the product ID with the upload if available
       const publicId = await uploadToCloudinary(file, productId);
       
       clearInterval(progressInterval);
@@ -115,11 +106,10 @@ const ImageUploader = ({
       setUploadProgress(100);
       setRawPublicId(publicId);
       
-      // Store the direct Cloudinary URL for testing
       const directUrl = `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/v1/${publicId}`;
       setDirectCloudinaryUrl(directUrl);
+      console.log("Direct Cloudinary URL:", directUrl);
       
-      // Generate the full URL from public ID - with eager loading for this image
       const imageUrl = buildCloudinaryUrl(publicId, {
         width: 800,
         height: 600,
@@ -128,24 +118,25 @@ const ImageUploader = ({
       });
       
       setUploadedImage(imageUrl);
+      console.log("Full Cloudinary URL with transformations:", imageUrl);
       
-      // If we have a product ID, update the product with the new image URL
       if (productId) {
-        await updateProductImage(productId, imageUrl);
-        toast.success("Product image updated successfully");
+        const success = await updateProductImage(productId, directUrl);
+        
+        if (success) {
+          toast.success("Product image updated successfully");
+        } else {
+          toast.warning("Image uploaded but product update failed");
+        }
       } else {
         toast.success("Image uploaded successfully");
       }
       
-      // Notify parent component if callback is provided
       if (onImageUploaded) {
-        onImageUploaded(publicId, imageUrl);
+        onImageUploaded(publicId, directUrl);
       }
     } catch (error) {
-      console.error("Error uploading image:", error);
-      
       if (error instanceof Error) {
-        // Check if this is a preset configuration error
         const errorMessage = error.message.toLowerCase();
         if (errorMessage.includes('preset') && 
             (errorMessage.includes('whitelist') || errorMessage.includes('unsigned'))) {
@@ -160,7 +151,7 @@ const ImageUploader = ({
       }
     } finally {
       setIsUploading(false);
-      setUploadProgress(0); // Reset progress
+      setUploadProgress(0);
     }
   };
   
@@ -240,7 +231,7 @@ const ImageUploader = ({
             disabled={isUploading || isConfigValid === false}
             className="cursor-pointer"
             id="file-upload"
-            style={{ display: 'none' }} // Hide the default file input
+            style={{ display: 'none' }}
           />
           <Button
             type="button"
@@ -282,7 +273,6 @@ const ImageUploader = ({
         </div>
       )}
       
-      {/* Test URLs section - Display Direct Cloudinary URL */}
       {rawPublicId && directCloudinaryUrl && (
         <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-md">
           <h3 className="text-blue-800 font-medium mb-2">Cloudinary Testing URLs</h3>
@@ -350,14 +340,25 @@ const ImageUploader = ({
               </Button>
             </div>
           </div>
-          <img 
-            src={uploadedImage} 
-            alt="Uploaded image" 
-            className="w-full h-auto max-h-[300px] object-contain"
-            onError={() => {
-              toast.error("Failed to load image preview. The upload might have failed.");
-            }}
-          />
+          <div className="p-2 flex items-center justify-center bg-white">
+            <img 
+              src={directCloudinaryUrl || uploadedImage} 
+              alt="Uploaded image" 
+              className="w-full h-auto max-h-[300px] object-contain"
+              onError={(e) => {
+                console.error("Failed to load preview with URL:", (e.target as HTMLImageElement).src);
+                
+                if (directCloudinaryUrl && (e.target as HTMLImageElement).src !== directCloudinaryUrl) {
+                  console.log("Trying direct Cloudinary URL:", directCloudinaryUrl);
+                  (e.target as HTMLImageElement).src = directCloudinaryUrl;
+                } else {
+                  console.log("Using fallback image");
+                  (e.target as HTMLImageElement).src = `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/v1/sample`;
+                  toast.error("Failed to load image preview. The image might not be accessible.");
+                }
+              }}
+            />
+          </div>
         </div>
       )}
       

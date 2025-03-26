@@ -104,17 +104,22 @@ export const uploadToCloudinary = async (file: File, productId?: string): Promis
     console.log('Upload successful:', data);
     
     if (data.public_id) {
+      // Log the raw public_id received from Cloudinary
+      console.log('Received public_id:', data.public_id);
+      console.log('Received secure_url:', data.secure_url);
+      
       // If the product ID is provided, update the product with the new image URL
       if (productId) {
         // Import is intentionally inside the function to avoid circular dependencies
         const { updateProductImage } = await import('@/lib/supabase/products');
         
-        // Generate a full URL from the public ID for the product
-        const imageUrl = buildCloudinaryUrl(data.public_id, {
-          width: 800,
-          height: 600,
-          quality: 90
-        });
+        // Generate a direct URL for the product that will work reliably
+        // Use the secure_url directly from Cloudinary response instead of building our own
+        // If that's not available, construct a direct URL without transformations
+        const imageUrl = data.secure_url || 
+          `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/v1/${data.public_id}`;
+        
+        console.log('Using URL for product update:', imageUrl);
         
         // Update the product with the image URL
         const updated = await updateProductImage(productId, imageUrl);
