@@ -7,15 +7,11 @@ import { Card } from "@/components/ui/card";
 import ImageCard from "./ImageCard";
 
 interface CloudinaryImage {
-  id: string;
   publicId: string;
   url: string;
-  createdAt: string;
+  uploadedAt: string;  // This replaces createdAt
   productId?: string;
-  product?: {
-    name: string;
-    id: string;
-  };
+  productName?: string;
 }
 
 interface ProductGroupProps {
@@ -56,7 +52,7 @@ const ProductGroup = ({
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
         {images.map((image) => (
           <Card 
-            key={image.id} 
+            key={image.publicId} 
             className="overflow-hidden hover:shadow-md transition-shadow"
             onClick={() => onImageClick(image.url)}
           >

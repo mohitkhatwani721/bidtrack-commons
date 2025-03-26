@@ -4,7 +4,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
 interface ImageCardProps {
-  id: string;
   url: string;
   publicId: string;
   productId?: string;
@@ -14,7 +13,6 @@ interface ImageCardProps {
 }
 
 const ImageCard = ({
-  id,
   url,
   publicId,
   productId,
@@ -23,7 +21,7 @@ const ImageCard = ({
   onProductClick
 }: ImageCardProps) => {
   return (
-    <Card key={id} className="overflow-hidden hover:shadow-md transition-shadow">
+    <Card className="overflow-hidden hover:shadow-md transition-shadow">
       <div 
         className="aspect-square relative cursor-pointer"
         onClick={() => onImageClick(url)}

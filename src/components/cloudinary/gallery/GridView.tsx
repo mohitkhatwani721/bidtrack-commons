@@ -4,16 +4,13 @@ import ImageCard from "./ImageCard";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { InfoIcon } from "lucide-react";
 
+// Update the CloudinaryImage interface to match useImageGallery.ts
 interface CloudinaryImage {
-  id: string;
   publicId: string;
   url: string;
-  createdAt: string;
+  uploadedAt: string;  // This replaces createdAt
   productId?: string;
-  product?: {
-    name: string;
-    id: string;
-  };
+  productName?: string;
 }
 
 interface GridViewProps {
@@ -41,12 +38,11 @@ const GridView = ({ images, onImageClick, onProductClick }: GridViewProps) => {
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
         {images.map((image) => (
           <ImageCard
-            key={image.id}
-            id={image.id}
+            key={image.publicId}  // Using publicId instead of id
             url={image.url}
             publicId={image.publicId}
             productId={image.productId}
-            productName={image.product?.name}
+            productName={image.productName}
             onImageClick={onImageClick}
             onProductClick={onProductClick}
           />

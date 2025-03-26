@@ -1,16 +1,13 @@
 
 import ProductGroup from "./ProductGroup";
 
+// Update the CloudinaryImage interface to match useImageGallery.ts
 interface CloudinaryImage {
-  id: string;
   publicId: string;
   url: string;
-  createdAt: string;
+  uploadedAt: string;  // This replaces createdAt
   productId?: string;
-  product?: {
-    name: string;
-    id: string;
-  };
+  productName?: string;
 }
 
 interface ProductViewModel {
