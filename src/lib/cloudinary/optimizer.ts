@@ -68,44 +68,22 @@ export const getOptimizedImageUrl = (
 
 /**
  * Sanitizes Samsung URLs by removing query parameters that might cause issues
+ * This is a more aggressive implementation that always strips away anything after
+ * a question mark to ensure image loading works reliably
  */
 export const sanitizeSamsungUrl = (url: string): string => {
   if (!url) return url;
   
   try {
-    // Check if it's a Samsung URL
+    // First, simplified approach: just remove query parameters for any Samsung URL
     if (url.includes('samsung.com')) {
       console.log(`Sanitizing Samsung URL: ${url}`);
       
-      // Parse the URL - handle both direct URLs and Cloudinary-wrapped Samsung URLs
-      let urlToSanitize = url;
+      // Most reliable method: simply remove everything after the question mark
+      const simplifiedUrl = url.split('?')[0];
       
-      // If it's a Cloudinary URL that contains a Samsung URL
-      if (isCloudinaryUrl(url) && url.includes('fetch/')) {
-        const fetchPartMatch = url.match(/\/fetch\/(.+)$/);
-        if (fetchPartMatch && fetchPartMatch[1]) {
-          urlToSanitize = decodeURIComponent(fetchPartMatch[1]);
-        }
-      }
-      
-      // Create URL object to parse
-      const parsedUrl = new URL(urlToSanitize);
-      
-      // Recreate the URL without search params 
-      // This is crucial for Samsung images that fail to load with query params
-      const sanitizedUrl = `${parsedUrl.origin}${parsedUrl.pathname}`;
-      
-      console.log(`Sanitized Samsung URL: ${sanitizedUrl}`);
-      
-      // If the original was a Cloudinary URL, reconstruct it with the sanitized Samsung URL
-      if (isCloudinaryUrl(url) && url.includes('fetch/')) {
-        const parts = url.split('/fetch/');
-        if (parts.length === 2) {
-          return `${parts[0]}/fetch/${encodeURIComponent(sanitizedUrl)}`;
-        }
-      }
-      
-      return sanitizedUrl;
+      console.log(`Simplified Samsung URL: ${simplifiedUrl}`);
+      return simplifiedUrl;
     }
   } catch (error) {
     console.error(`Error sanitizing URL: ${url}`, error);

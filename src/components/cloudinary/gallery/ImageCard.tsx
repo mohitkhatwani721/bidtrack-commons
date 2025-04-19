@@ -2,6 +2,7 @@
 import { ExternalLink, LinkIcon } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { sanitizeSamsungUrl } from "@/utils/images/samsungUrlFix";
 
 interface ImageCardProps {
   url: string;
@@ -20,27 +21,10 @@ const ImageCard = ({
   onImageClick,
   onProductClick
 }: ImageCardProps) => {
-  // Fix Samsung URLs directly in the component
+  // Fix Samsung URLs directly in the component with the simplified approach
   const fixSamsungUrls = (originalUrl: string) => {
-    if (originalUrl.includes('samsung.com') && originalUrl.includes('?')) {
-      try {
-        // For Cloudinary fetch URLs containing Samsung URLs
-        if (originalUrl.includes('/fetch/')) {
-          const [baseUrl, fetchPart] = originalUrl.split('/fetch/');
-          if (fetchPart) {
-            const decodedUrl = decodeURIComponent(fetchPart);
-            const parsedUrl = new URL(decodedUrl);
-            const sanitizedPath = `${parsedUrl.origin}${parsedUrl.pathname}`;
-            return `${baseUrl}/fetch/${encodeURIComponent(sanitizedPath)}`;
-          }
-        } else if (originalUrl.includes('samsung.com')) {
-          // Direct Samsung URL
-          const parsedUrl = new URL(originalUrl);
-          return `${parsedUrl.origin}${parsedUrl.pathname}`;
-        }
-      } catch (e) {
-        console.error("Error fixing Samsung URL in ImageCard:", e);
-      }
+    if (originalUrl.includes('samsung.com')) {
+      return sanitizeSamsungUrl(originalUrl);
     }
     return originalUrl;
   };

@@ -10,12 +10,8 @@ export const sanitizeSamsungUrl = (url: string): string => {
     if (url.includes('samsung.com')) {
       console.log(`Sanitizing Samsung URL: ${url}`);
       
-      // Parse the URL
-      const parsedUrl = new URL(url);
-      
-      // Recreate the URL without search params 
-      // This is crucial for Samsung images that fail to load with query params
-      const sanitizedUrl = `${parsedUrl.origin}${parsedUrl.pathname}`;
+      // Most reliable method: simply remove everything after the question mark
+      const sanitizedUrl = url.split('?')[0];
       
       console.log(`Sanitized Samsung URL: ${sanitizedUrl}`);
       return sanitizedUrl;
