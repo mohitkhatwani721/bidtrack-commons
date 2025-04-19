@@ -21,7 +21,7 @@ export {
 // Image Optimization
 export {
   getOptimizedImageUrl,
-  sanitizeSamsungUrl,
+  sanitizeUrlInOptimizer as sanitizeSamsungUrl,
   convertToCloudinary
 } from './optimizer';
 

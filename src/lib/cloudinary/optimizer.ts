@@ -1,6 +1,6 @@
 
 import { isCloudinaryUrl, buildCloudinaryUrl, fetchViaCloudinary } from './urlBuilder';
-import { sanitizeSamsungUrl } from '@/utils/images/samsungUrlFix';
+import { sanitizeSamsungUrl as importedSanitizeSamsungUrl } from '@/utils/images/samsungUrlFix';
 
 // Cache for image optimization
 const optimizationCache: Record<string, string> = {};
@@ -55,8 +55,9 @@ export const getOptimizedImageUrl = (
 
 /**
  * Sanitizes problematic URLs, particularly avoiding Samsung URLs
+ * Implementation within the optimizer module
  */
-export const sanitizeSamsungUrl = (url: string): string => {
+export const sanitizeUrlInOptimizer = (url: string): string => {
   if (!url) return url;
   
   try {
