@@ -9,39 +9,35 @@ interface ImageUrlDisplayProps {
 const ImageUrlDisplay = ({ imageUrl }: ImageUrlDisplayProps) => {
   useEffect(() => {
     console.log("🔍 ImageUrlDisplay - Current URL:", imageUrl);
-    
-    // Extra validation for Cloudinary URLs
-    if (imageUrl?.includes('cloudinary.com')) {
-      const urlParts = imageUrl.split('/upload/');
-      if (urlParts.length === 2) {
-        console.log("🔍 Cloudinary URL Parts:", {
-          base: urlParts[0],
-          publicId: urlParts[1]
-        });
-      }
-    }
   }, [imageUrl]);
 
   if (!imageUrl) return null;
   
-  // Helper function to fix Cloudinary URL format if needed
-  const getFixedCloudinaryUrl = (url: string): string => {
-    if (!url.includes('cloudinary.com')) return url;
+  // Helper function to handle Cloudinary URL issues
+  const getDisplayUrl = (url: string): string => {
+    if (!url) return 'https://res.cloudinary.com/di8rdvt2y/image/upload/v1/sample';
     
-    try {
-      // For direct Cloudinary uploads, ensure we're using the proper URL structure
-      const parts = url.split('/upload/');
-      if (parts.length === 2) {
-        // If missing version, insert v1
-        if (!parts[1].startsWith('v1/') && !parts[1].match(/^v\d+\//)) {
+    // Avoid Samsung URLs entirely
+    if (url.includes('samsung.com')) {
+      return 'https://res.cloudinary.com/di8rdvt2y/image/upload/v1/sample';
+    }
+    
+    // For Cloudinary URLs, ensure proper format
+    if (url.includes('cloudinary.com')) {
+      try {
+        const parts = url.split('/upload/');
+        if (parts.length === 2 && !parts[1].startsWith('v1/') && !parts[1].match(/^v\d+\//)) {
           return `${parts[0]}/upload/v1/${parts[1]}`;
         }
+      } catch (err) {
+        console.error("Error fixing Cloudinary URL:", err);
       }
-    } catch (err) {
-      console.error("Error fixing Cloudinary URL:", err);
     }
+    
     return url;
   };
+  
+  const displayUrl = getDisplayUrl(imageUrl);
   
   return (
     <div className="mt-4 p-3 bg-slate-50 border border-slate-200 rounded text-xs font-mono overflow-hidden">
@@ -60,28 +56,20 @@ const ImageUrlDisplay = ({ imageUrl }: ImageUrlDisplayProps) => {
       <div className="mt-2 p-2 border border-slate-200 rounded bg-white">
         <p className="text-slate-500 mb-1 text-xs">Image preview:</p>
         <img 
-          src={getFixedCloudinaryUrl(imageUrl)} 
+          src={displayUrl} 
           alt="URL preview" 
           className="h-20 object-contain mx-auto" 
           onLoad={() => console.log("🟢 Image preview loaded successfully")}
           onError={(e) => {
             console.error("🔴 Image preview failed to load:", {
               src: imageUrl,
+              displayUrl,
               error: e
             });
             
             // Use a default Cloudinary fallback
             const img = e.target as HTMLImageElement;
-            const cloudName = 'di8rdvt2y';  // Your Cloudinary cloud name
-            
-            try {
-              // Use a simple Cloudinary sample image as fallback
-              const fallbackUrl = `https://res.cloudinary.com/${cloudName}/image/upload/v1/sample`;
-              console.log("🔍 Using Cloudinary fallback URL:", fallbackUrl);
-              img.src = fallbackUrl;
-            } catch (err) {
-              console.error("Failed to use fallback image", err);
-            }
+            img.src = 'https://res.cloudinary.com/di8rdvt2y/image/upload/v1/sample';
           }}
         />
       </div>

@@ -1,5 +1,6 @@
 
 import { isCloudinaryUrl, buildCloudinaryUrl, fetchViaCloudinary } from './urlBuilder';
+import { sanitizeSamsungUrl } from '@/utils/images/samsungUrlFix';
 
 // Cache for image optimization
 const optimizationCache: Record<string, string> = {};
@@ -16,77 +17,56 @@ export const getOptimizedImageUrl = (
     isHighPriority?: boolean;
   } = {}
 ): string => {
-  if (!url) return '';
+  if (!url) return 'https://res.cloudinary.com/di8rdvt2y/image/upload/v1/sample';
   
   const { width = 400, height = 300, quality = 80, isHighPriority = false } = options;
   
-  // First check if it's a Samsung URL that needs sanitizing
+  // Avoid Samsung URLs entirely
   if (url.includes('samsung.com')) {
-    url = sanitizeSamsungUrl(url);
+    console.log(`Avoiding Samsung URL in getOptimizedImageUrl: ${url}`);
+    return 'https://res.cloudinary.com/di8rdvt2y/image/upload/v1/sample';
   }
   
   // If already a Cloudinary URL, just ensure it has optimized transformations
   if (isCloudinaryUrl(url)) {
-    // Extract the public ID from the URL
-    const publicIdMatch = url.match(/\/upload\/(?:v\d+\/)?(.+)$/);
-    if (publicIdMatch && publicIdMatch[1]) {
-      const publicId = publicIdMatch[1];
-      return buildCloudinaryUrl(publicId, {
-        width,
-        height,
-        quality,
-        loading: isHighPriority ? 'eager' : 'lazy'
-      });
-    }
-    
-    // For Cloudinary fetch URLs that wrap Samsung images, fix the fetch URL directly
-    if (url.includes('/fetch/') && url.includes('samsung.com')) {
-      // Get everything after /fetch/
-      const fetchUrlMatch = url.match(/\/fetch\/(.+)$/);
-      if (fetchUrlMatch && fetchUrlMatch[1]) {
-        // Decode the encoded URL
-        const encodedUrl = fetchUrlMatch[1];
-        try {
-          const decodedUrl = decodeURIComponent(encodedUrl);
-          // Remove query params from Samsung URL
-          const sanitizedSamsungUrl = sanitizeSamsungUrl(decodedUrl);
-          // Replace the old fetch URL with sanitized one
-          const transformations = url.split('/fetch/')[0];
-          return `${transformations}/fetch/${encodeURIComponent(sanitizedSamsungUrl)}`;
-        } catch (error) {
-          console.error("Error decoding fetch URL:", error);
+    // For direct Cloudinary uploads, ensure we're using the proper URL structure
+    if (url.includes('/upload/')) {
+      try {
+        const parts = url.split('/upload/');
+        if (parts.length === 2) {
+          // Ensure URL has a version
+          if (!parts[1].startsWith('v1/') && !parts[1].match(/^v\d+\//)) {
+            const fixedUrl = `${parts[0]}/upload/v1/${parts[1]}`;
+            console.log(`Fixed Cloudinary URL format: ${fixedUrl}`);
+            return fixedUrl;
+          }
         }
+      } catch (error) {
+        console.error("Error fixing Cloudinary URL format:", error);
       }
     }
     
     return url;
   }
   
-  // For external images, use Cloudinary's fetch capability
+  // For external images, use Cloudinary's fetch capability (excluding Samsung)
   return fetchViaCloudinary(url, { width, height, quality });
 };
 
 /**
- * Sanitizes Samsung URLs by removing query parameters that might cause issues
- * This is a more aggressive implementation that always strips away anything after
- * a question mark to ensure image loading works reliably
+ * Sanitizes problematic URLs, particularly avoiding Samsung URLs
  */
 export const sanitizeSamsungUrl = (url: string): string => {
   if (!url) return url;
   
   try {
-    // First, simplified approach: just remove query parameters for any Samsung URL
+    // Avoid Samsung URLs entirely
     if (url.includes('samsung.com')) {
-      console.log(`Sanitizing Samsung URL: ${url}`);
-      
-      // Most reliable method: simply remove everything after the question mark
-      const simplifiedUrl = url.split('?')[0];
-      
-      console.log(`Simplified Samsung URL: ${simplifiedUrl}`);
-      return simplifiedUrl;
+      console.log(`Avoiding Samsung URL in optimizer: ${url}`);
+      return 'https://res.cloudinary.com/di8rdvt2y/image/upload/v1/sample';
     }
   } catch (error) {
-    console.error(`Error sanitizing URL: ${url}`, error);
+    console.error(`Error processing URL: ${url}`, error);
   }
   
   // Return original URL if not a Samsung URL or if there was an error
@@ -114,9 +94,11 @@ export const convertToCloudinary = (url: string, options: {
     return url;
   }
   
-  // Fix Samsung URLs before converting to Cloudinary
+  // Avoid Samsung URLs entirely
   if (url.includes('samsung.com')) {
-    url = sanitizeSamsungUrl(url);
+    const defaultUrl = 'https://res.cloudinary.com/di8rdvt2y/image/upload/v1/sample';
+    optimizationCache[cacheKey] = defaultUrl;
+    return defaultUrl;
   }
 
   const result = fetchViaCloudinary(url, options);

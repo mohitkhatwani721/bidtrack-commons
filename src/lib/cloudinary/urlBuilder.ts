@@ -21,7 +21,7 @@ export const buildCloudinaryUrl = (
 ): string => {
   if (!publicId) {
     console.warn('No publicId provided to buildCloudinaryUrl');
-    return '';
+    return 'https://res.cloudinary.com/di8rdvt2y/image/upload/v1/sample';
   }
 
   try {
@@ -47,8 +47,11 @@ export const buildCloudinaryUrl = (
     // Build transformation string with performance optimizations
     const transformations = `w_${width},h_${height},q_${quality},c_${crop},f_${format},fl_progressive`;
     
-    // Return full URL - FIXED FORMAT
-    const url = `${CLOUDINARY_BASE_URL}/${transformations}/v1/${publicId}`;
+    // Ensure publicId doesn't start with a slash
+    const cleanPublicId = publicId.startsWith('/') ? publicId.substring(1) : publicId;
+    
+    // Return full URL with explicit version
+    const url = `${CLOUDINARY_BASE_URL}/${transformations}/v1/${cleanPublicId}`;
     
     // Cache the result
     transformationCache[cacheKey] = url;
@@ -56,7 +59,7 @@ export const buildCloudinaryUrl = (
     return url;
   } catch (error) {
     console.error('Error building Cloudinary URL:', error);
-    return '';
+    return 'https://res.cloudinary.com/di8rdvt2y/image/upload/v1/sample';
   }
 };
 
@@ -69,11 +72,6 @@ export const isCloudinaryUrl = (url: string): boolean => {
   try {
     // More robust check that handles various Cloudinary URL patterns
     const isCloudinary = url.includes('cloudinary.com') || url.includes('res.cloudinary.com');
-    
-    if (isCloudinary) {
-      console.log(`Detected Cloudinary URL: ${url.substring(0, 50)}...`);
-    }
-    
     return isCloudinary;
   } catch (error) {
     console.error('Error checking if URL is Cloudinary:', error);
@@ -82,22 +80,24 @@ export const isCloudinaryUrl = (url: string): boolean => {
 };
 
 /**
- * Sanitizes URL for fetch - especially important for Samsung URLs
+ * Sanitizes URL for fetch - avoiding problematic URLs
  */
 const sanitizeFetchUrl = (url: string): string => {
   if (!url) return '';
   
   try {
-    // Special handling for Samsung URLs
+    // Avoid Samsung URLs entirely
     if (url.includes('samsung.com')) {
-      const parsedUrl = new URL(url);
-      return `${parsedUrl.origin}${parsedUrl.pathname}`;
+      console.log(`Avoiding Samsung URL in fetch: ${url}`);
+      return 'https://res.cloudinary.com/di8rdvt2y/image/upload/v1/sample';
     }
+    
+    // For other URLs, return as is
+    return url;
   } catch (error) {
     console.error('Error sanitizing fetch URL:', error);
+    return url;
   }
-  
-  return url;
 };
 
 /**
@@ -112,13 +112,19 @@ export const fetchViaCloudinary = (
   } = {}
 ): string => {
   // Skip if URL is invalid or empty
-  if (!externalUrl) return '';
+  if (!externalUrl) return 'https://res.cloudinary.com/di8rdvt2y/image/upload/v1/sample';
 
   try {
-    // Sanitize the URL before encoding it (especially for Samsung URLs)
+    // Avoid Samsung URLs entirely
+    if (externalUrl.includes('samsung.com')) {
+      console.log(`Avoiding Samsung URL in fetchViaCloudinary: ${externalUrl}`);
+      return 'https://res.cloudinary.com/di8rdvt2y/image/upload/v1/sample';
+    }
+    
+    // Sanitize the URL before encoding it
     const sanitizedUrl = sanitizeFetchUrl(externalUrl);
     
-    // For external images, we can use Cloudinary's fetch capability
+    // For external images, use Cloudinary's fetch capability
     const fetchUrl = encodeURIComponent(sanitizedUrl);
     
     const { width = 600, height = 400, quality = 80 } = options;
@@ -130,6 +136,6 @@ export const fetchViaCloudinary = (
     return `${CLOUDINARY_BASE_URL}/${transformations}/fetch/${fetchUrl}`;
   } catch (error) {
     console.error("Error creating fetch URL:", error);
-    return externalUrl; // Fall back to the original URL
+    return 'https://res.cloudinary.com/di8rdvt2y/image/upload/v1/sample';
   }
 };

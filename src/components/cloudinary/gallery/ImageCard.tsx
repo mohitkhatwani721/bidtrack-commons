@@ -21,16 +21,30 @@ const ImageCard = ({
   onImageClick,
   onProductClick
 }: ImageCardProps) => {
-  // Fix Samsung URLs directly in the component with the simplified approach
-  const fixSamsungUrls = (originalUrl: string) => {
+  // Process URL to avoid any Samsung URLs and ensure Cloudinary format is correct
+  const processImageUrl = (originalUrl: string) => {
+    // First check if it's a Samsung URL, if so return a default image
     if (originalUrl.includes('samsung.com')) {
-      return sanitizeSamsungUrl(originalUrl);
+      return 'https://res.cloudinary.com/di8rdvt2y/image/upload/v1/sample';
     }
+    
+    // Ensure Cloudinary URLs have the correct format
+    if (originalUrl.includes('cloudinary.com') && originalUrl.includes('/upload/')) {
+      try {
+        const parts = originalUrl.split('/upload/');
+        if (parts.length === 2 && !parts[1].startsWith('v1/') && !parts[1].match(/^v\d+\//)) {
+          return `${parts[0]}/upload/v1/${parts[1]}`;
+        }
+      } catch (error) {
+        console.error("Error fixing Cloudinary URL format:", error);
+      }
+    }
+    
     return originalUrl;
   };
 
-  // Process URL to fix any Samsung issues
-  const processedUrl = fixSamsungUrls(url);
+  // Process URL to fix any issues
+  const processedUrl = processImageUrl(url);
 
   return (
     <Card className="overflow-hidden hover:shadow-md transition-shadow">
@@ -43,21 +57,8 @@ const ImageCard = ({
           alt={`Cloudinary image ${publicId}`}
           className="object-cover w-full h-full hover:scale-105 transition-transform"
           onError={(e) => {
-            // Add direct Samsung URL fixing on error
-            if (url.includes('samsung.com')) {
-              try {
-                const imgElement = e.target as HTMLImageElement;
-                const currentSrc = imgElement.src;
-                if (currentSrc.includes('?')) {
-                  const newSrc = currentSrc.split('?')[0];
-                  imgElement.src = newSrc;
-                  return;
-                }
-              } catch (err) {
-                console.error("Error fixing Samsung URL on error:", err);
-              }
-            }
-            (e.target as HTMLImageElement).src = '/placeholder.svg';
+            console.error("Image error in ImageCard:", processedUrl);
+            (e.target as HTMLImageElement).src = 'https://res.cloudinary.com/di8rdvt2y/image/upload/v1/sample';
           }}
         />
         {productName && (
